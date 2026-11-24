@@ -1,0 +1,3035 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Manajemen Kelas 6 - SDN 4 Bandungsari</title>
+    <!-- Tailwind CSS untuk Desain -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS untuk Import Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- JsBarcode untuk membuat Barcode -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Pengaturan Cetak Resmi (F4 Portrait / Landscape otomatis disesuaikan melalui style dinamis) */
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                box-sizing: border-box;
+                background: white !important;
+            }
+            .card { 
+                border: 1px solid #000; 
+                padding: 10px; 
+                margin: 8px; 
+                display: inline-block; 
+                width: 45%; 
+                text-align: center; 
+                page-break-inside: avoid;
+            }
+            /* Format tabel cetak resmi */
+            .print-table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                font-size: 9px; 
+                text-align: center; 
+            }
+            .print-table th, .print-table td { 
+                border: 1px solid #000 !important; 
+                padding: 3px 4px; 
+                line-height: 1.25; 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+            }
+            .print-table th { 
+                background-color: #f3f4f6 !important; 
+                font-weight: bold;
+            }
+            .text-left-print { text-align: left !important; }
+            .text-center-print { text-align: center !important; }
+            .text-right-print { text-align: right !important; }
+            .valign-top-print { vertical-align: top !important; }
+        }
+    </style>
+    <style id="dynamic-page-style">
+        @media print {
+            @page { size: 210mm 330mm portrait; margin: 10mm; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+
+    <!-- Navigasi Utama -->
+    <nav class="bg-blue-700 text-white p-4 shadow-md sticky top-0 z-40">
+        <div class="container mx-auto flex flex-wrap justify-between items-center gap-2">
+            <div>
+                <h1 id="nav-brand" class="text-xl font-bold leading-tight">SDN 4 Bandungsari - Kelas 6</h1>
+                <span class="text-xs text-blue-200 block">Administrasi Kelas & Layanan Bimbingan Konseling (Kurikulum Merdeka)</span>
+            </div>
+            <div class="flex flex-wrap gap-1 text-xs sm:text-sm">
+                <button onclick="openTab('data-siswa')" id="nav-data-siswa" class="nav-btn hover:bg-blue-500 px-2.5 py-1.5 rounded transition">Data Siswa</button>
+                <button onclick="openTab('absensi')" id="nav-absensi" class="nav-btn hover:bg-blue-500 px-2.5 py-1.5 rounded transition">Absensi Harian</button>
+                <button onclick="openTab('rekap-usia')" id="nav-rekap-usia" class="nav-btn hover:bg-blue-500 px-2.5 py-1.5 rounded transition">Rekap Usia</button>
+                <button onclick="openTab('mutasi')" id="nav-mutasi" class="nav-btn hover:bg-blue-500 px-2.5 py-1.5 rounded transition">Mutasi</button>
+                <button onclick="openTab('rekap-absen')" id="nav-rekap-absen" class="nav-btn hover:bg-blue-500 px-2.5 py-1.5 rounded transition">Rekap Absen</button>
+                <button onclick="openTab('catatan')" id="nav-catatan" class="nav-btn hover:bg-blue-500 px-2.5 py-1.5 rounded transition">Catatan Siswa</button>
+                <button onclick="openTab('bk')" id="nav-bk" class="nav-btn hover:bg-blue-500 px-2.5 py-1.5 rounded transition flex items-center gap-1">🤝 Bimbingan & Konseling</button>
+                <button onclick="openTab('ortu')" id="nav-ortu" class="nav-btn hover:bg-blue-500 px-2.5 py-1.5 rounded transition flex items-center gap-1">👨‍👩‍👧‍👦 Kerja Sama Ortu</button>
+                <button onclick="openTab('keuangan')" id="nav-keuangan" class="nav-btn hover:bg-blue-500 px-2.5 py-1.5 rounded transition">Keuangan</button>
+                <button onclick="openTab('pengaturan')" id="nav-pengaturan" class="nav-btn hover:bg-blue-500 px-2.5 py-1.5 rounded transition">⚙️ Pengaturan</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Kontainer Utama -->
+    <div class="container mx-auto p-4 mt-4 bg-white shadow rounded-lg min-h-screen mb-8">
+        
+        <!-- MENU 1: DATA SISWA -->
+        <div id="data-siswa" class="tab-content active">
+            <div class="flex flex-wrap justify-between items-center mb-4 border-b pb-2 gap-2">
+                <h2 class="text-2xl font-bold">Input & Data Siswa</h2>
+                <button onclick="cetakKartu()" class="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 font-semibold text-sm flex items-center gap-1">
+                    🖨️ Cetak Kartu Barcode
+                </button>
+            </div>
+            
+            <div class="mb-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <label class="block font-semibold mb-2 text-blue-900">Import Data dari Excel (Kolom: No_Induk, NISN, Nama, L_P, Tempat_Tgl_Lahir, Alamat)</label>
+                <input type="file" id="excel-file" accept=".xlsx, .xls" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"/>
+            </div>
+
+            <div class="overflow-x-auto border rounded-lg">
+                <table class="w-full border-collapse text-sm">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="border p-2 w-10">No</th>
+                            <th class="border p-2">No Induk</th>
+                            <th class="border p-2">NISN</th>
+                            <th class="border p-2 text-left">Nama</th>
+                            <th class="border p-2 w-12">L/P</th>
+                            <th class="border p-2">TTL</th>
+                            <th class="border p-2 text-left">Alamat</th>
+                            <th class="border p-2 w-20">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-siswa"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- MENU 2: ABSENSI MANUAL -->
+        <div id="absensi" class="tab-content">
+            <h2 class="text-2xl font-bold mb-4 border-b pb-2">Absensi Harian Kelas</h2>
+            
+            <div class="mb-4 p-4 bg-gray-50 border rounded-lg flex flex-wrap items-center gap-4">
+                <div>
+                    <label class="font-bold text-gray-700 block mb-1">Pilih Tanggal Absensi:</label>
+                    <input type="date" id="input-tanggal" onchange="gantiTanggal()" class="border-2 border-blue-300 p-2 rounded-lg focus:outline-none focus:border-blue-500 font-bold text-gray-700">
+                </div>
+                <div id="status-absen" class="hidden mt-6 flex flex-wrap items-center gap-2"></div>
+                <div id="warning-libur" class="hidden bg-red-100 text-red-700 border border-red-300 p-2.5 rounded-lg mt-6 flex flex-wrap items-center gap-3">
+                    <span id="teks-libur"></span>
+                    <span id="aksi-libur"></span>
+                </div>
+            </div>
+
+            <div class="border p-4 rounded-lg" id="area-absen">
+                <h3 class="font-bold mb-3 flex flex-wrap justify-between items-center gap-2">
+                    <span>Status Absensi (<span id="display-tanggal" class="text-blue-600"></span>)</span>
+                    <span class="text-xs font-normal text-gray-600 bg-yellow-100 px-3 py-1 rounded-full border border-yellow-300">Otomatis Hadir Semua. Ubah jika ada yang tidak masuk.</span>
+                </h3>
+                <div class="overflow-x-auto max-h-[60vh] border rounded-lg">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-200 sticky top-0 shadow">
+                            <tr>
+                                <th class="p-3 border w-12 text-center">No</th>
+                                <th class="p-3 border">Nama Siswa</th>
+                                <th class="p-3 border w-48 text-center">Status (H/S/I/A)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-absen-harian"></tbody>
+                    </table>
+                </div>
+                <button onclick="simpanAbsen()" class="mt-4 bg-blue-600 text-white w-full py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg text-lg transition">Simpan Absensi</button>
+            </div>
+        </div>
+
+        <!-- MENU 3: REKAP USIA -->
+        <div id="rekap-usia" class="tab-content">
+            <div class="flex flex-wrap justify-between items-center mb-4 border-b pb-2 gap-3">
+                <div>
+                    <h2 class="text-2xl font-bold">Rekap Usia Siswa (Juli 2026 - Juni 2027)</h2>
+                    <p class="text-xs text-gray-500">Perhitungan usia otomatis berdasarkan tanggal lahir pada tiap awal bulan.</p>
+                </div>
+                <button onclick="cetakRekapUsia()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-blue-700 flex items-center gap-2 text-sm">
+                    🖨️ Cetak Rekap Usia (1 Lembar)
+                </button>
+            </div>
+
+            <div class="overflow-x-auto border rounded-lg shadow-sm">
+                <table class="w-full border-collapse text-xs text-center" id="tabel-usia-wrapper">
+                    <thead class="bg-blue-100">
+                        <tr>
+                            <th class="border p-2 w-8">No</th>
+                            <th class="border p-2 sticky left-0 bg-blue-100 text-left min-w-[160px]">Nama Siswa</th>
+                            <th class="border p-2 w-10">L/P</th>
+                            <th class="border p-2 min-w-[130px]">Tempat, Tgl Lahir</th>
+                            <th class="border p-1">Jul '26</th>
+                            <th class="border p-1">Agt '26</th>
+                            <th class="border p-1">Sep '26</th>
+                            <th class="border p-1">Okt '26</th>
+                            <th class="border p-1">Nov '26</th>
+                            <th class="border p-1">Des '26</th>
+                            <th class="border p-1">Jan '27</th>
+                            <th class="border p-1">Feb '27</th>
+                            <th class="border p-1">Mar '27</th>
+                            <th class="border p-1">Apr '27</th>
+                            <th class="border p-1">Mei '27</th>
+                            <th class="border p-1">Jun '27</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-usia"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- MENU 4: MUTASI SISWA -->
+        <div id="mutasi" class="tab-content">
+            <div class="flex flex-wrap justify-between items-center mb-4 border-b pb-2 gap-3">
+                <div>
+                    <h2 class="text-2xl font-bold">Rekapitulasi & Daftar Mutasi Siswa</h2>
+                    <p class="text-xs text-gray-500">Tahun Pelajaran 2026/2027 (Cetak 1 Lembar Rekap & Catatan Siswa Masuk/Keluar)</p>
+                </div>
+                <button onclick="cetakMutasi()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-blue-700 flex items-center gap-2 text-sm">
+                    🖨️ Cetak Mutasi Siswa (1 Lembar)
+                </button>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-6">
+                <!-- Tabel Rekap Angka Bulanan -->
+                <div class="lg:col-span-5">
+                    <h3 class="font-bold text-gray-700 mb-2">1. Rekapitulasi Jumlah Siswa Bulanan</h3>
+                    <div class="overflow-x-auto border rounded-lg">
+                        <table class="w-full text-xs text-center border-collapse">
+                            <thead class="bg-gray-200">
+                                <tr>
+                                    <th class="border p-2 text-left">Bulan</th>
+                                    <th class="border p-2">Awal</th>
+                                    <th class="border p-2 bg-green-50">Masuk</th>
+                                    <th class="border p-2 bg-red-50">Keluar</th>
+                                    <th class="border p-2">Akhir</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-mutasi"></tbody>
+                        </table>
+                    </div>
+                    <button onclick="simpanMutasi()" class="mt-3 w-full bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 shadow">
+                        💾 Simpan Rekap Angka Mutasi
+                    </button>
+                </div>
+
+                <!-- Daftar Rincian Nama Siswa Mutasi Masuk / Keluar -->
+                <div class="lg:col-span-7">
+                    <h3 class="font-bold text-gray-700 mb-2">2. Catatan Rincian Siswa Masuk / Keluar</h3>
+                    <div class="bg-gray-50 border rounded-lg p-3 mb-3 grid sm:grid-cols-2 gap-2 text-sm">
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Tanggal Mutasi</label>
+                            <input type="date" id="mut-tgl" class="w-full border p-1.5 rounded bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Jenis Mutasi</label>
+                            <select id="mut-jenis" class="w-full border p-1.5 rounded bg-white font-semibold">
+                                <option value="Masuk">Siswa Masuk</option>
+                                <option value="Keluar">Siswa Keluar</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">Nama Lengkap Siswa</label>
+                            <input type="text" id="mut-nama" placeholder="Nama siswa..." class="w-full border p-1.5 rounded bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold mb-1">NIS / NISN</label>
+                            <input type="text" id="mut-nisn" placeholder="Nomor induk / NISN..." class="w-full border p-1.5 rounded bg-white">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold mb-1">Sekolah Asal / Tujuan & Alasan Pindah</label>
+                            <input type="text" id="mut-ket" placeholder="Contoh: Pindahan dari SDN 1.../ Mengikuti orang tua" class="w-full border p-1.5 rounded bg-white">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <button onclick="tambahDetailMutasi()" class="bg-blue-600 text-white px-4 py-1.5 rounded font-semibold hover:bg-blue-700 text-xs">
+                                + Tambahkan ke Daftar Rincian
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto border rounded-lg max-h-[340px]">
+                        <table class="w-full text-xs border-collapse">
+                            <thead class="bg-gray-200 sticky top-0">
+                                <tr>
+                                    <th class="border p-2 w-8">No</th>
+                                    <th class="border p-2">Tanggal</th>
+                                    <th class="border p-2">Jenis</th>
+                                    <th class="border p-2 text-left">Nama Siswa</th>
+                                    <th class="border p-2">NIS/NISN</th>
+                                    <th class="border p-2 text-left">Asal/Tujuan & Ket.</th>
+                                    <th class="border p-2 w-14">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-mutasi-detail"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MENU 5: REKAP ABSEN -->
+        <div id="rekap-absen" class="tab-content">
+            <h2 class="text-2xl font-bold mb-4 border-b pb-2">Rekap Absensi Bulanan (Format Resmi)</h2>
+            <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+                <div class="flex items-center gap-2">
+                    <label class="font-bold text-gray-700">Pilih Bulan:</label>
+                    <select id="pilih-bulan" class="border-2 border-blue-300 p-2 rounded-lg focus:outline-none focus:border-blue-500 font-bold" onchange="renderRekapAbsen()">
+                        <option value="07-2026">Juli 2026</option>
+                        <option value="08-2026">Agustus 2026</option>
+                        <option value="09-2026">September 2026</option>
+                        <option value="10-2026">Oktober 2026</option>
+                        <option value="11-2026">November 2026</option>
+                        <option value="12-2026">Desember 2026</option>
+                        <option value="01-2027">Januari 2027</option>
+                        <option value="02-2027">Februari 2027</option>
+                        <option value="03-2027">Maret 2027</option>
+                        <option value="04-2027">April 2027</option>
+                        <option value="05-2027">Mei 2027</option>
+                        <option value="06-2027">Juni 2027</option>
+                    </select>
+                </div>
+                <button onclick="cetakRekapAbsen()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-blue-700 flex items-center gap-2 text-sm">
+                    🖨️ Cetak Laporan Bulanan (1 Lembar)
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto max-h-[60vh] border rounded-lg shadow-sm bg-white">
+                <table class="w-full text-xs text-center border-collapse whitespace-nowrap" id="tabel-full-rekap"></table>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">* Keterangan: [ • ] = Hadir, [ S ] = Sakit, [ I ] = Izin, [ A ] = Alpha. Kolom kuning = hari libur, kolom merah muda = hari Minggu.</p>
+            <p id="info-efektif" class="text-sm font-semibold text-gray-700 mt-2"></p>
+            <div id="keterangan-libur" class="text-xs text-gray-700 mt-1"></div>
+            
+            <div id="info-persentase-container" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 class="font-bold text-sm text-blue-900 mb-2">📊 Perhitungan Persentase Kehadiran Bulan Ini</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
+                    <div class="bg-white p-2 rounded border text-center">
+                        <span class="block text-xs text-gray-500">Total Hari Efektif</span>
+                        <span id="stat-hari-efektif" class="font-bold text-gray-800">0</span>
+                    </div>
+                    <div class="bg-white p-2 rounded border text-center">
+                        <span class="block text-xs text-gray-500">Total Hadir (H)</span>
+                        <span id="stat-total-h" class="font-bold text-green-600">0</span>
+                    </div>
+                    <div class="bg-white p-2 rounded border text-center">
+                        <span class="block text-xs text-gray-500">S / I / A</span>
+                        <span id="stat-total-sia" class="font-bold text-yellow-600">0 / 0 / 0</span>
+                    </div>
+                    <div class="bg-white p-2 rounded border text-center">
+                        <span class="block text-xs text-gray-500">Persentase Kehadiran</span>
+                        <span id="stat-persen-hadir" class="font-bold text-blue-600">0%</span>
+                    </div>
+                    <div class="bg-white p-2 rounded border text-center">
+                        <span class="block text-xs text-gray-500">Siswa Terajin</span>
+                        <span id="stat-siswa-terajin" class="font-bold text-indigo-600">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MENU 6: CATATAN SISWA -->
+        <div id="catatan" class="tab-content">
+            <div class="flex flex-wrap justify-between items-center mb-4 border-b pb-2 gap-3">
+                <div>
+                    <h2 class="text-2xl font-bold">Catatan Kesehatan, Fisik & Perkembangan Siswa</h2>
+                    <p class="text-xs text-gray-500">Data orang tua, tinggi/berat badan, kondisi fisik, dan catatan khusus siswa.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="simpanCatatan()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-green-700 text-sm">
+                        💾 Simpan Catatan
+                    </button>
+                    <button onclick="cetakCatatan()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-blue-700 flex items-center gap-2 text-sm">
+                        🖨️ Cetak Catatan Siswa (1 Lembar)
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto border rounded-lg">
+                <table class="w-full border-collapse text-sm">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="border p-2 w-10">No</th>
+                            <th class="border p-2 text-left">Nama Siswa</th>
+                            <th class="border p-2 text-left">Nama Ayah</th>
+                            <th class="border p-2 text-left">Nama Ibu</th>
+                            <th class="border p-2 w-24">Tinggi (cm)</th>
+                            <th class="border p-2 w-24">Berat (kg)</th>
+                            <th class="border p-2 text-left">Kelainan / Cacat Tubuh</th>
+                            <th class="border p-2 text-left">Catatan Khusus Lainnya</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-catatan"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- MENU 7: BIMBINGAN DAN KONSELING (KURIKULUM MERDEKA FASE C) -->
+        <div id="bk" class="tab-content">
+            <div class="flex flex-wrap justify-between items-center mb-4 border-b pb-3 gap-3">
+                <div>
+                    <h2 class="text-2xl font-bold text-indigo-900">Bimbingan & Konseling (Kelas 6)</h2>
+                    <p class="text-xs text-gray-600">Catatan pendampingan siswa & cetak laporan resmi BK.</p>
+                </div>
+                <button onclick="cetakLaporanBK('rekap')" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-indigo-700 flex items-center gap-2 text-sm">
+                    🖨️ Cetak Laporan Resmi BK
+                </button>
+            </div>
+
+            <!-- Form Input Sederhana BK -->
+            <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-4 mb-5">
+                <h3 id="bk-form-title" class="font-bold text-indigo-950 text-sm mb-3">📝 Input Catatan Layanan BK</h3>
+                <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Tanggal *</label>
+                        <input type="date" id="bk-tgl" class="w-full border border-gray-300 p-2 rounded-lg bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Bidang Bimbingan</label>
+                        <select id="bk-bidang" class="w-full border border-gray-300 p-2 rounded-lg bg-white">
+                            <option value="Pribadi">Pribadi</option>
+                            <option value="Sosial">Sosial</option>
+                            <option value="Belajar">Belajar</option>
+                            <option value="Karir / Lanjutan SMP">Karir / Lanjutan SMP</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Status</label>
+                        <select id="bk-status" class="w-full border border-gray-300 p-2 rounded-lg bg-white font-semibold">
+                            <option value="Tuntas">Tuntas</option>
+                            <option value="Dalam Pemantauan">Dalam Pemantauan</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2 md:col-span-3">
+                        <div class="flex flex-wrap justify-between items-center mb-1 gap-2">
+                            <label class="block text-xs font-bold text-gray-700">
+                                Pilih Siswa (Klik satu nama untuk Individu, atau centang beberapa nama untuk BK Kelompok) *
+                            </label>
+                            <div class="flex items-center gap-3 text-xs">
+                                <span id="bk-selected-count" class="font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full">0 siswa dipilih</span>
+                                <button type="button" onclick="pilihKlasikalBK()" class="text-indigo-700 hover:underline font-semibold">Pilih Semua (Klasikal)</button>
+                                <button type="button" onclick="resetPilihanSiswaBK()" class="text-red-600 hover:underline font-semibold">Reset</button>
+                            </div>
+                        </div>
+                        <div id="bk-siswa-list" class="max-h-36 overflow-y-auto border border-gray-300 rounded-lg p-2 bg-white grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5"></div>
+                    </div>
+                    <div class="sm:col-span-2 md:col-span-3 grid sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Permasalahan / Kebutuhan Siswa *</label>
+                            <input type="text" id="bk-masalah" placeholder="Contoh: Kurang fokus belajar / konseling kelompok..." class="w-full border border-gray-300 p-2 rounded-lg bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Tindakan & Tindak Lanjut *</label>
+                            <input type="text" id="bk-tindakan" placeholder="Contoh: Konseling kelompok & kesepakatan belajar..." class="w-full border border-gray-300 p-2 rounded-lg bg-white">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 flex gap-2">
+                    <button onclick="simpanBK()" id="btn-simpan-bk" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 text-sm">
+                        💾 Simpan Catatan BK
+                    </button>
+                    <button onclick="batalEditBK()" id="btn-batal-bk" class="hidden bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-400 text-sm">
+                        Batal
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabel Riwayat BK -->
+            <div class="overflow-x-auto border rounded-lg shadow-sm">
+                <table class="w-full border-collapse text-xs">
+                    <thead class="bg-indigo-100 text-indigo-950">
+                        <tr>
+                            <th class="border p-2 w-8 text-center">No</th>
+                            <th class="border p-2 w-24">Tanggal</th>
+                            <th class="border p-2 text-left">Nama Siswa & Jenis Layanan</th>
+                            <th class="border p-2 w-28">Bidang</th>
+                            <th class="border p-2 text-left">Permasalahan / Kebutuhan</th>
+                            <th class="border p-2 text-left">Tindakan & Tindak Lanjut</th>
+                            <th class="border p-2 w-24 text-center">Status</th>
+                            <th class="border p-2 w-32 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-bk"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- MENU 8: BUKU KERJA SAMA DENGAN ORANG TUA -->
+        <div id="ortu" class="tab-content">
+            <div class="flex flex-wrap justify-between items-center mb-4 border-b pb-3 gap-3">
+                <div>
+                    <h2 class="text-2xl font-bold text-teal-900">Buku Kerja Sama Orang Tua / Wali</h2>
+                    <p class="text-xs text-gray-600">Catatan komunikasi & kemitraan orang tua sesuai regulasi Kemendikdasmen.</p>
+                </div>
+                <button onclick="cetakLaporanOrtu('rekap')" class="bg-teal-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-teal-700 flex items-center gap-2 text-sm">
+                    🖨️ Cetak Laporan Kerja Sama Ortu
+                </button>
+            </div>
+
+            <!-- Form Input Sederhana Kerja Sama Orang Tua -->
+            <div class="bg-teal-50/70 border border-teal-200 rounded-xl p-4 mb-5">
+                <h3 id="ortu-form-title" class="font-bold text-teal-950 text-sm mb-3">📝 Input Catatan Kerja Sama Orang Tua</h3>
+                <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Tanggal *</label>
+                        <input type="date" id="ortu-tgl" class="w-full border border-gray-300 p-2 rounded-lg bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Nama Siswa *</label>
+                        <select id="ortu-siswa" onchange="isiOtomatisNamaOrtu()" class="w-full border border-gray-300 p-2 rounded-lg bg-white font-semibold uppercase">
+                            <option value="">-- Pilih Siswa --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Nama Ayah / Ibu / Wali *</label>
+                        <input type="text" id="ortu-nama-wali" placeholder="Otomatis terisi dari Catatan Siswa..." class="w-full border border-gray-300 p-2 rounded-lg bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Bentuk Kerja Sama</label>
+                        <select id="ortu-bentuk" class="w-full border border-gray-300 p-2 rounded-lg bg-white">
+                            <option value="Konsultasi Belajar & Karakter">Konsultasi Belajar & Karakter</option>
+                            <option value="Pertemuan Wali Murid">Pertemuan Wali Murid</option>
+                            <option value="Kunjungan Rumah (Home Visit)">Kunjungan Rumah (Home Visit)</option>
+                            <option value="Koordinasi Lanjutan SMP">Koordinasi Lanjutan SMP</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Hal yang Dibahas *</label>
+                        <input type="text" id="ortu-topik" placeholder="Contoh: Pendampingan kebiasaan belajar & disiplin di rumah..." class="w-full border border-gray-300 p-2 rounded-lg bg-white">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Kesepakatan & Tindak Lanjut *</label>
+                        <input type="text" id="ortu-hasil" placeholder="Contoh: Orang tua mendampingi jam belajar malam..." class="w-full border border-gray-300 p-2 rounded-lg bg-white">
+                    </div>
+                </div>
+
+                <div class="mt-3 flex gap-2">
+                    <button onclick="simpanOrtu()" id="btn-simpan-ortu" class="bg-teal-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-teal-700 text-sm">
+                        💾 Simpan Kerja Sama Ortu
+                    </button>
+                    <button onclick="batalEditOrtu()" id="btn-batal-ortu" class="hidden bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-400 text-sm">
+                        Batal
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabel Riwayat Kerja Sama Orang Tua -->
+            <div class="overflow-x-auto border rounded-lg shadow-sm">
+                <table class="w-full border-collapse text-xs">
+                    <thead class="bg-teal-100 text-teal-950">
+                        <tr>
+                            <th class="border p-2 w-8 text-center">No</th>
+                            <th class="border p-2 w-24">Tanggal</th>
+                            <th class="border p-2 text-left">Siswa & Orang Tua</th>
+                            <th class="border p-2 w-36">Bentuk Kerja Sama</th>
+                            <th class="border p-2 text-left">Hal yang Dibahas</th>
+                            <th class="border p-2 text-left">Kesepakatan & Tindak Lanjut</th>
+                            <th class="border p-2 w-32 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-ortu"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- MENU 9: KEUANGAN -->
+        <div id="keuangan" class="tab-content">
+            <h2 class="text-2xl font-bold mb-4 border-b pb-2">Catatan Keuangan Kelas</h2>
+            <div class="overflow-x-auto border rounded-lg">
+                <table class="w-full border-collapse text-sm text-center">
+                    <thead class="bg-green-100">
+                        <tr>
+                            <th class="border p-2 text-left" rowspan="2">Nama Siswa</th>
+                            <th class="border p-2" colspan="2">MPP</th>
+                            <th class="border p-2" colspan="2">Jurnal</th>
+                            <th class="border p-2" rowspan="2">Buku TKA</th>
+                            <th class="border p-2" rowspan="2">Perpisahan</th>
+                        </tr>
+                        <tr>
+                            <th class="border p-1 text-xs">Sem 1</th>
+                            <th class="border p-1 text-xs">Sem 2</th>
+                            <th class="border p-1 text-xs">Sem 1</th>
+                            <th class="border p-1 text-xs">Sem 2</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-keuangan"></tbody>
+                </table>
+            </div>
+            <button onclick="simpanKeuangan()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-blue-700">💾 Simpan Data Keuangan</button>
+        </div>
+
+        <!-- MENU 10: PENGATURAN -->
+        <div id="pengaturan" class="tab-content">
+            <h2 class="text-2xl font-bold mb-4 border-b pb-2">Pengaturan</h2>
+
+            <!-- SINKRON GOOGLE SHEETS -->
+            <section class="bg-green-50 border border-green-300 p-4 rounded-lg mb-6">
+                <h3 class="text-lg font-bold mb-1">📊 Sinkron Google Sheets</h3>
+                <p class="text-sm text-gray-600 mb-3">Tempel URL Web App dan kode rahasia dari Apps Script. Setelah tersambung, setiap kali data disimpan akan otomatis terkirim ke Google Sheet.</p>
+                <div class="grid md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">URL Web App</label>
+                        <input type="text" id="gs-url" class="w-full border p-2 rounded-lg text-sm" placeholder="https://script.google.com/macros/s/.../exec">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">Kode Rahasia (TOKEN)</label>
+                        <input type="password" id="gs-token" class="w-full border p-2 rounded-lg text-sm" placeholder="Sama dengan TOKEN di Code.gs">
+                    </div>
+                </div>
+                <label class="flex items-center gap-2 text-sm mb-3 cursor-pointer">
+                    <input type="checkbox" id="gs-auto" class="w-4 h-4"> Kirim otomatis ke Sheet setiap data disimpan
+                </label>
+                <div class="flex flex-wrap gap-2 items-center">
+                    <button onclick="simpanPengaturanGS()" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">💾 Simpan Pengaturan</button>
+                    <button onclick="syncKeSheet(false, true)" class="bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-green-700">⬆️ Kirim ke Sheet Sekarang</button>
+                    <button onclick="muatDariSheet()" class="bg-amber-500 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-amber-600">⬇️ Muat dari Sheet</button>
+                    <span id="gs-status" class="text-sm text-gray-600"></span>
+                </div>
+            </section>
+
+            <div class="grid lg:grid-cols-2 gap-6 mb-8">
+                <section class="bg-gray-50 border p-4 rounded-lg">
+                    <h3 class="text-lg font-bold mb-3">🏫 Identitas Sekolah & Pejabat Penandatangan</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Nama Sekolah</label>
+                            <input type="text" id="setting-nama-sekolah" class="w-full border p-2 rounded-lg" placeholder="Contoh: SDN 4 BANDUNGSARI">
+                        </div>
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">Kelas / Fase</label>
+                                <input type="text" id="setting-nama-kelas" class="w-full border p-2 rounded-lg" placeholder="Contoh: VI (Enam) / Fase C">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">Tempat Cetak Laporan</label>
+                                <input type="text" id="setting-kota" class="w-full border p-2 rounded-lg" placeholder="Contoh: Bandungsari">
+                            </div>
+                        </div>
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">Nama Kepala Sekolah</label>
+                                <input type="text" id="setting-nama-ks" class="w-full border p-2 rounded-lg" placeholder="Nama lengkap + gelar">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">NIP Kepala Sekolah</label>
+                                <input type="text" id="setting-nip-ks" class="w-full border p-2 rounded-lg" placeholder="NIP Kepala Sekolah">
+                            </div>
+                        </div>
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">Nama Guru Kelas</label>
+                                <input type="text" id="setting-nama-guru" class="w-full border p-2 rounded-lg" placeholder="Nama lengkap + gelar">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">NIP Guru Kelas</label>
+                                <input type="text" id="setting-nip-guru" class="w-full border p-2 rounded-lg" placeholder="NIP Guru Kelas">
+                            </div>
+                        </div>
+                        <button onclick="simpanIdentitas()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700">💾 Simpan Identitas</button>
+                    </div>
+                </section>
+
+                <section>
+                    <h3 class="text-lg font-bold mb-2">🗂️ Kelola Absensi yang Sudah Tersimpan</h3>
+                    <p class="text-sm text-gray-600 mb-3">Daftar tanggal yang sudah diabsen. Klik <b>Hapus</b> jika tanggal tersebut tidak seharusnya diabsen.</p>
+                    <div class="overflow-x-auto max-h-[42vh] border rounded-lg">
+                        <table class="w-full text-sm border-collapse">
+                            <thead class="bg-gray-200 sticky top-0">
+                                <tr>
+                                    <th class="border p-2 text-left">Tanggal</th>
+                                    <th class="border p-2 w-8">H</th>
+                                    <th class="border p-2 w-8">S</th>
+                                    <th class="border p-2 w-8">I</th>
+                                    <th class="border p-2 w-8">A</th>
+                                    <th class="border p-2 w-32">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-absen-tersimpan"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <section class="border-t pt-6">
+                <h3 class="text-lg font-bold mb-2">📅 Hari Libur Nasional & Libur Semester</h3>
+                <p class="text-sm text-gray-600 mb-3">Tanggal yang diinput otomatis diblokir pada Absensi Harian dan muncul sebagai kolom kuning di Rekap Absen.</p>
+
+                <div class="bg-blue-50 border rounded-lg p-4 mb-3 max-w-xl">
+                    <h4 id="judul-form-libur" class="font-bold mb-3">Tambah Hari Libur</h4>
+                    <div class="grid sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Tanggal Mulai</label>
+                            <input type="date" id="lib-mulai" class="w-full border p-2 rounded-lg bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Tanggal Selesai <span class="font-normal text-gray-500">(opsional)</span></label>
+                            <input type="date" id="lib-selesai" class="w-full border p-2 rounded-lg bg-white">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-sm font-semibold mb-1">Keterangan</label>
+                            <input type="text" id="lib-ket" placeholder="Contoh: HUT Kemerdekaan RI / Libur Semester Ganjil" class="w-full border p-2 rounded-lg bg-white">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-sm font-semibold mb-1">Jenis</label>
+                            <select id="lib-jenis" class="w-full border p-2 rounded-lg bg-white">
+                                <option>Libur Nasional</option>
+                                <option>Cuti Bersama</option>
+                                <option>Libur Semester</option>
+                                <option>Libur Sekolah / Lainnya</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <button onclick="simpanLibur()" id="btn-simpan-libur" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700">Tambah Libur</button>
+                        <button onclick="batalEditLibur()" id="btn-batal-libur" class="hidden bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400">Batal</button>
+                    </div>
+                </div>
+
+                <button onclick="tambahLiburTetap()" class="mb-3 text-sm bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700">+ Tambah libur nasional tanggal tetap (TA 2026/2027)</button>
+
+                <div class="overflow-x-auto max-h-[45vh] border rounded-lg">
+                    <table class="w-full text-sm border-collapse">
+                        <thead class="bg-gray-200 sticky top-0">
+                            <tr>
+                                <th class="border p-2 text-left">Tanggal</th>
+                                <th class="border p-2 text-left">Keterangan</th>
+                                <th class="border p-2">Jenis</th>
+                                <th class="border p-2 w-32">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-libur"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+    </div>
+
+    <!-- Custom Modal Notification & Confirmation -->
+    <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transform transition-all">
+            <h3 id="modal-title" class="text-lg font-bold text-gray-900 mb-2">Informasi</h3>
+            <p id="modal-message" class="text-sm text-gray-600 whitespace-pre-line mb-6"></p>
+            <div class="flex justify-end gap-2">
+                <button id="modal-cancel-btn" class="hidden px-4 py-2 rounded-lg bg-gray-200 text-gray-800 font-semibold hover:bg-gray-300 text-sm">Batal</button>
+                <button id="modal-ok-btn" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 text-sm">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Area Cetak -->
+    <div id="print-area" style="display:none; background:white;"></div>
+
+    <script>
+        // ================= SISTEM MODAL PENGGANTI ALERT / CONFIRM =================
+        function showAlert(msg, title = 'Informasi') {
+            return new Promise(resolve => {
+                const modal = document.getElementById('custom-modal');
+                document.getElementById('modal-title').innerText = title;
+                document.getElementById('modal-message').innerText = msg;
+                const cancelBtn = document.getElementById('modal-cancel-btn');
+                const okBtn = document.getElementById('modal-ok-btn');
+                
+                cancelBtn.classList.add('hidden');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+
+                okBtn.onclick = () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    resolve(true);
+                };
+            });
+        }
+
+        function showConfirm(msg, title = 'Konfirmasi') {
+            return new Promise(resolve => {
+                const modal = document.getElementById('custom-modal');
+                document.getElementById('modal-title').innerText = title;
+                document.getElementById('modal-message').innerText = msg;
+                const cancelBtn = document.getElementById('modal-cancel-btn');
+                const okBtn = document.getElementById('modal-ok-btn');
+                
+                cancelBtn.classList.remove('hidden');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+
+                cancelBtn.onclick = () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    resolve(false);
+                };
+                okBtn.onclick = () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    resolve(true);
+                };
+            });
+        }
+
+        // ================= INISIALISASI DATABASE LOCAL STORAGE =================
+        let db = {
+            siswa: JSON.parse(localStorage.getItem('sdn4_siswa')) || [],
+            absen: JSON.parse(localStorage.getItem('sdn4_absen')) || {},
+            catatan: JSON.parse(localStorage.getItem('sdn4_catatan')) || {},
+            bk: JSON.parse(localStorage.getItem('sdn4_bk')) || [],
+            ortu: JSON.parse(localStorage.getItem('sdn4_ortu')) || [],
+            keuangan: JSON.parse(localStorage.getItem('sdn4_keuangan')) || {},
+            mutasi: JSON.parse(localStorage.getItem('sdn4_mutasi')) || {},
+            mutasiDetail: JSON.parse(localStorage.getItem('sdn4_mutasi_detail')) || [],
+            libur: JSON.parse(localStorage.getItem('sdn4_libur')) || [],
+            config: JSON.parse(localStorage.getItem('sdn4_config')) || {
+                namaSekolah: 'SDN 4 BANDUNGSARI',
+                namaKelas: 'VI (Enam)',
+                kota: 'Bandungsari',
+                namaKs: 'NAMA KEPALA SEKOLAH, S.Pd.',
+                nipKs: '19800101 200501 1 001',
+                namaGuru: 'NAMA GURU KELAS, S.Pd.',
+                nipGuru: '19900101 201501 2 001'
+            }
+        };
+
+        // Helper Tanggal & String
+        function pad(n) { return String(n).padStart(2, '0'); }
+        function keyFromDate(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+        function dateFromKey(k) { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); }
+        function esc(str) {
+            return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+        function fmtTglPendek(k) {
+            return dateFromKey(k).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+        function fmtTglPanjang(d = new Date()) {
+            return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+        function getLibur(key) {
+            return db.libur.find(l => l.mulai <= key && key <= l.selesai) || null;
+        }
+
+        let selectedDate = keyFromDate(new Date());
+
+        window.onload = () => {
+            document.getElementById('input-tanggal').value = selectedDate;
+            document.getElementById('bk-tgl').value = selectedDate;
+            document.getElementById('ortu-tgl').value = selectedDate;
+            terapkanIdentitas();
+        };
+
+        function terapkanIdentitas() {
+            const cfg = db.config;
+            document.getElementById('page-title').innerText = `Manajemen Kelas ${cfg.namaKelas} - ${cfg.namaSekolah}`;
+            document.getElementById('nav-brand').innerText = `${cfg.namaSekolah} - Kelas ${cfg.namaKelas}`;
+            document.getElementById('setting-nama-sekolah').value = cfg.namaSekolah;
+            document.getElementById('setting-nama-kelas').value = cfg.namaKelas;
+            document.getElementById('setting-kota').value = cfg.kota || 'Bandungsari';
+            document.getElementById('setting-nama-ks').value = cfg.namaKs;
+            document.getElementById('setting-nip-ks').value = cfg.nipKs;
+            document.getElementById('setting-nama-guru').value = cfg.namaGuru;
+            document.getElementById('setting-nip-guru').value = cfg.nipGuru;
+        }
+
+        async function simpanIdentitas() {
+            db.config = {
+                namaSekolah: document.getElementById('setting-nama-sekolah').value.trim() || 'SDN 4 BANDUNGSARI',
+                namaKelas: document.getElementById('setting-nama-kelas').value.trim() || 'VI (Enam)',
+                kota: document.getElementById('setting-kota').value.trim() || 'Bandungsari',
+                namaKs: document.getElementById('setting-nama-ks').value.trim() || 'NAMA KEPALA SEKOLAH, S.Pd.',
+                nipKs: document.getElementById('setting-nip-ks').value.trim() || '-',
+                namaGuru: document.getElementById('setting-nama-guru').value.trim() || 'NAMA GURU KELAS, S.Pd.',
+                nipGuru: document.getElementById('setting-nip-guru').value.trim() || '-'
+            };
+            simpanDB();
+            terapkanIdentitas();
+            await showAlert('Identitas sekolah dan pejabat penandatangan berhasil disimpan!');
+        }
+
+        // Navigasi Tab
+        function openTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-blue-900', 'font-bold'));
+            const activeBtn = document.getElementById('nav-' + tabId);
+            if(activeBtn) activeBtn.classList.add('bg-blue-900', 'font-bold');
+
+            if(tabId === 'data-siswa') renderSiswa();
+            if(tabId === 'absensi') {
+                document.getElementById('input-tanggal').value = selectedDate;
+                renderAbsenHarian(); 
+            }
+            if(tabId === 'rekap-usia') renderUsia();
+            if(tabId === 'mutasi') renderMutasi();
+            if(tabId === 'rekap-absen') renderRekapAbsen();
+            if(tabId === 'catatan') renderCatatan();
+            if(tabId === 'bk') renderBK();
+            if(tabId === 'ortu') renderOrtu();
+            if(tabId === 'keuangan') renderKeuangan();
+            if(tabId === 'pengaturan') renderPengaturan();
+        }
+
+        function simpanDB() {
+            localStorage.setItem('sdn4_siswa', JSON.stringify(db.siswa));
+            localStorage.setItem('sdn4_absen', JSON.stringify(db.absen));
+            localStorage.setItem('sdn4_catatan', JSON.stringify(db.catatan));
+            localStorage.setItem('sdn4_bk', JSON.stringify(db.bk));
+            localStorage.setItem('sdn4_ortu', JSON.stringify(db.ortu));
+            localStorage.setItem('sdn4_keuangan', JSON.stringify(db.keuangan));
+            localStorage.setItem('sdn4_mutasi', JSON.stringify(db.mutasi));
+            localStorage.setItem('sdn4_mutasi_detail', JSON.stringify(db.mutasiDetail));
+            localStorage.setItem('sdn4_libur', JSON.stringify(db.libur));
+            localStorage.setItem('sdn4_config', JSON.stringify(db.config));
+        }
+
+        // ================= HELPER CETAK 1 LEMBAR (F4 PORTRAIT / LANDSCAPE) =================
+        function setOrientasiCetak(orientasi = 'portrait', fontSize = '9.5px') {
+            const styleEl = document.getElementById('dynamic-page-style');
+            const sizeCss = orientasi === 'landscape' ? '330mm 210mm landscape' : '210mm 330mm portrait';
+            styleEl.innerHTML = `
+                @media print {
+                    @page { size: ${sizeCss}; margin: 8mm 10mm; }
+                    .print-table { font-size: ${fontSize}; }
+                }
+            `;
+        }
+
+        function buatBlokTandaTangan(tanggalStr = null) {
+            const cfg = db.config;
+            const kota = cfg.kota || 'Bandungsari';
+            const tgl = tanggalStr || `${kota}, ${fmtTglPanjang(new Date())}`;
+            return `
+                <div style="margin-top: 14px; width: 100%; display: flex; justify-content: space-between; font-size: 11px; page-break-inside: avoid;">
+                    <div style="text-align: center; width: 240px;">
+                        <p style="margin: 0;">Mengetahui,<br>Kepala Sekolah</p>
+                        <br><br><br>
+                        <p style="text-decoration: underline; font-weight: bold; margin-bottom: 2px;">${esc(cfg.namaKs)}</p>
+                        <p style="margin: 0;">NIP. ${esc(cfg.nipKs)}</p>
+                    </div>
+                    <div style="text-align: center; width: 240px;">
+                        <p style="margin: 0;">${tgl}<br>Guru Kelas ${esc(cfg.namaKelas)}</p>
+                        <br><br><br>
+                        <p style="text-decoration: underline; font-weight: bold; margin-bottom: 2px;">${esc(cfg.namaGuru)}</p>
+                        <p style="margin: 0;">NIP. ${esc(cfg.nipGuru)}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ================= 1. DATA SISWA & IMPORT =================
+        document.getElementById('excel-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(ev) {
+                const data = new Uint8Array(ev.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet);
+                
+                db.siswa = json.map((row, idx) => ({
+                    id: Date.now() + idx,
+                    noInduk: row.No_Induk || '',
+                    nisn: row.NISN || '',
+                    nama: row.Nama || '',
+                    lp: row.L_P || '',
+                    ttl: row.Tempat_Tgl_Lahir || '',
+                    alamat: row.Alamat || ''
+                }));
+                simpanDB();
+                renderSiswa();
+                await showAlert(`Berhasil mengimpor ${db.siswa.length} data siswa!`);
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function renderSiswa() {
+            const tbody = document.getElementById('tabel-siswa');
+            tbody.innerHTML = '';
+            if(db.siswa.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-500">Belum ada data siswa. Silakan impor file Excel.</td></tr>`;
+                return;
+            }
+            db.siswa.forEach((s, idx) => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="border p-2 text-center">${idx + 1}</td>
+                        <td class="border p-2 text-center">${esc(s.noInduk)}</td>
+                        <td class="border p-2 text-center">${esc(s.nisn)}</td>
+                        <td class="border p-2 font-bold uppercase">${esc(s.nama)}</td>
+                        <td class="border p-2 text-center">${esc(s.lp)}</td>
+                        <td class="border p-2">${esc(s.ttl)}</td>
+                        <td class="border p-2">${esc(s.alamat)}</td>
+                        <td class="border p-2 text-center"><button onclick="hapusSiswa(${idx})" class="text-red-500 hover:underline font-medium">Hapus</button></td>
+                    </tr>`;
+            });
+        }
+
+        async function hapusSiswa(idx) {
+            const ok = await showConfirm(`Hapus data siswa "${db.siswa[idx].nama}"?`);
+            if(ok) { 
+                db.siswa.splice(idx, 1); 
+                simpanDB(); 
+                renderSiswa(); 
+            }
+        }
+
+        async function cetakKartu() {
+            if(db.siswa.length === 0) {
+                await showAlert('Belum ada data siswa untuk dicetak.');
+                return;
+            }
+            setOrientasiCetak('portrait');
+            const pa = document.getElementById('print-area');
+            pa.innerHTML = '';
+            db.siswa.forEach(s => {
+                pa.innerHTML += `
+                <div class="card">
+                    <h3 style="margin:0; font-size:15px; font-weight:bold;">${esc(db.config.namaSekolah)}</h3>
+                    <p style="margin:2px; font-size:11px;">Kartu Pelajar & Absensi Kelas ${esc(db.config.namaKelas)}</p>
+                    <hr style="margin: 4px 0;">
+                    <h2 style="margin:5px 0; font-size:14px; font-weight:bold;">${esc(s.nama)}</h2>
+                    <p style="margin:2px; font-size:11px;">NISN: ${esc(s.nisn || '-')}</p>
+                    <svg id="barcode-${s.id}"></svg>
+                </div>`;
+            });
+            pa.style.display = 'block';
+            db.siswa.forEach(s => {
+                let code = s.nisn ? String(s.nisn) : (s.noInduk ? String(s.noInduk) : '0000');
+                JsBarcode(`#barcode-${s.id}`, code, { width: 1.5, height: 38, displayValue: true });
+            });
+            window.print();
+            pa.style.display = 'none';
+        }
+
+        // ================= 2. ABSENSI MANUAL =================
+        function gantiTanggal() {
+            selectedDate = document.getElementById('input-tanggal').value;
+            renderAbsenHarian();
+        }
+
+        function renderAbsenHarian() {
+            if(!selectedDate) return;
+            const dateObj = dateFromKey(selectedDate);
+            const isMinggu = dateObj.getDay() === 0;
+            const libur = getLibur(selectedDate);
+            const tersimpan = !!db.absen[selectedDate];
+
+            const areaAbsen = document.getElementById('area-absen');
+            const warningLibur = document.getElementById('warning-libur');
+            const statusEl = document.getElementById('status-absen');
+
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('display-tanggal').innerText = dateObj.toLocaleDateString('id-ID', options);
+
+            if (isMinggu || libur) {
+                areaAbsen.style.display = 'none';
+                statusEl.classList.add('hidden');
+                warningLibur.classList.remove('hidden');
+                document.getElementById('teks-libur').innerHTML = libur
+                    ? `<b>🚫 Hari Libur: ${esc(libur.ket)}</b> (${esc(libur.jenis)}). Absensi diblokir.`
+                    : `<b>⚠️ Hari Libur!</b> Tidak dapat mengisi absensi pada hari Minggu.`;
+                document.getElementById('aksi-libur').innerHTML = tersimpan
+                    ? `<button onclick="hapusAbsenTanggal()" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">Hapus data absensi tersimpan</button>`
+                    : '';
+                return;
+            }
+            areaAbsen.style.display = 'block';
+            warningLibur.classList.add('hidden');
+
+            statusEl.classList.remove('hidden');
+            statusEl.innerHTML = tersimpan
+                ? `<span class="bg-green-100 text-green-800 border border-green-300 px-3 py-2 rounded-lg font-semibold text-sm">✔ Sudah diabsen</span>
+                   <button onclick="hapusAbsenTanggal()" class="bg-red-600 text-white px-3 py-2 rounded-lg font-semibold hover:bg-red-700 text-sm">🗑️ Hapus Absensi</button>`
+                : `<span class="bg-gray-200 text-gray-700 border border-gray-300 px-3 py-2 rounded-lg font-semibold text-sm">Belum diabsen</span>`;
+
+            const data = db.absen[selectedDate] || {};
+            const tbody = document.getElementById('tabel-absen-harian');
+            tbody.innerHTML = '';
+            
+            db.siswa.forEach((s, idx) => {
+                let status = data[s.id] || 'H'; 
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-100 border-b">
+                        <td class="border-l p-2.5 text-center">${idx + 1}</td>
+                        <td class="border-l border-r p-2.5 font-medium uppercase">${esc(s.nama)}</td>
+                        <td class="p-2 border-r text-center">
+                            <select id="absen-${s.id}" class="border p-1.5 w-full rounded font-bold cursor-pointer focus:ring-2 focus:ring-blue-500" onchange="updateWarnaStatus('${s.id}')">
+                                <option value="H" ${status=='H'?'selected':''}>Hadir (H)</option>
+                                <option value="S" ${status=='S'?'selected':''}>Sakit (S)</option>
+                                <option value="I" ${status=='I'?'selected':''}>Ijin (I)</option>
+                                <option value="A" ${status=='A'?'selected':''}>Alpha (A)</option>
+                            </select>
+                        </td>
+                    </tr>`;
+            });
+
+            db.siswa.forEach(s => updateWarnaStatus(s.id));
+        }
+
+        function updateWarnaStatus(id) {
+            const selectEl = document.getElementById(`absen-${id}`);
+            if(!selectEl) return;
+            selectEl.classList.remove('bg-green-100', 'text-green-800', 'bg-yellow-100', 'text-yellow-800', 'bg-blue-100', 'text-blue-800', 'bg-red-100', 'text-red-800');
+            
+            const val = selectEl.value;
+            if(val === 'H') selectEl.classList.add('bg-green-100', 'text-green-800');
+            else if(val === 'S') selectEl.classList.add('bg-yellow-100', 'text-yellow-800');
+            else if(val === 'I') selectEl.classList.add('bg-blue-100', 'text-blue-800');
+            else if(val === 'A') selectEl.classList.add('bg-red-100', 'text-red-800');
+        }
+
+        async function simpanAbsen() {
+            if(!selectedDate) { await showAlert('Pilih tanggal terlebih dahulu.'); return; }
+            if(dateFromKey(selectedDate).getDay() === 0 || getLibur(selectedDate)) {
+                await showAlert('Tanggal ini hari libur, absensi tidak dapat disimpan.');
+                return;
+            }
+            if(db.siswa.length === 0) { await showAlert('Belum ada data siswa.'); return; }
+            db.absen[selectedDate] = {};
+            db.siswa.forEach(s => {
+                const val = document.getElementById(`absen-${s.id}`).value;
+                db.absen[selectedDate][s.id] = val;
+            });
+            simpanDB();
+            renderAbsenHarian();
+            await showAlert(`Absensi tanggal ${fmtTglPendek(selectedDate)} berhasil disimpan!`);
+        }
+
+        async function hapusAbsenTanggal(key) {
+            key = key || selectedDate;
+            if(!db.absen[key]) return;
+            const ok = await showConfirm(`Hapus absensi tanggal ${fmtTglPendek(key)}?\nTanggal ini akan dianggap kosong di rekap.`);
+            if(!ok) return;
+            delete db.absen[key];
+            simpanDB();
+            renderAbsenHarian();
+            renderDaftarAbsen();
+        }
+
+        // ================= 3. REKAP USIA & CETAK 1 LEMBAR =================
+        function parseTanggalLahir(ttlStr) {
+            if(!ttlStr) return null;
+            let datePart = ttlStr.includes(',') ? ttlStr.split(',')[1].trim() : ttlStr.trim();
+            
+            const bulanMap = {
+                'januari': 0, 'jan': 0, 'februari': 1, 'feb': 1, 'maret': 2, 'mar': 2,
+                'april': 3, 'apr': 3, 'mei': 4, 'juni': 5, 'jun': 5, 'juli': 6, 'jul': 6,
+                'agustus': 7, 'agt': 7, 'agu': 7, 'september': 8, 'sep': 8,
+                'oktober': 9, 'okt': 9, 'november': 10, 'nov': 10, 'desember': 11, 'des': 11
+            };
+
+            const partsSpace = datePart.split(/\s+/);
+            if(partsSpace.length === 3) {
+                const d = parseInt(partsSpace[0], 10);
+                const mStr = partsSpace[1].toLowerCase();
+                const y = parseInt(partsSpace[2], 10);
+                if(!isNaN(d) && bulanMap[mStr] !== undefined && !isNaN(y)) {
+                    return new Date(y, bulanMap[mStr], d);
+                }
+            }
+
+            const partsSlash = datePart.split(/[-/]/);
+            if(partsSlash.length === 3) {
+                if(partsSlash[0].length === 4) {
+                    return new Date(parseInt(partsSlash[0]), parseInt(partsSlash[1]) - 1, parseInt(partsSlash[2]));
+                } else {
+                    return new Date(parseInt(partsSlash[2]), parseInt(partsSlash[1]) - 1, parseInt(partsSlash[0]));
+                }
+            }
+
+            const fallback = new Date(datePart);
+            return isNaN(fallback) ? null : fallback;
+        }
+
+        function hitungUsia(tglLahir, targetDate) {
+            const birth = parseTanggalLahir(tglLahir);
+            if(!birth) return "-";
+            const target = dateFromKey(targetDate);
+            
+            let years = target.getFullYear() - birth.getFullYear();
+            let months = target.getMonth() - birth.getMonth();
+            if (months < 0 || (months === 0 && target.getDate() < birth.getDate())) {
+                years--;
+                months += 12;
+            }
+            return `${years}th ${months}bl`;
+        }
+
+        const daftarBulanUsia = [
+            { key: '2026-07-01', label: "Jul '26" },
+            { key: '2026-08-01', label: "Agt '26" },
+            { key: '2026-09-01', label: "Sep '26" },
+            { key: '2026-10-01', label: "Okt '26" },
+            { key: '2026-11-01', label: "Nov '26" },
+            { key: '2026-12-01', label: "Des '26" },
+            { key: '2027-01-01', label: "Jan '27" },
+            { key: '2027-02-01', label: "Feb '27" },
+            { key: '2027-03-01', label: "Mar '27" },
+            { key: '2027-04-01', label: "Apr '27" },
+            { key: '2027-05-01', label: "Mei '27" },
+            { key: '2027-06-01', label: "Jun '27" }
+        ];
+
+        function renderUsia() {
+            const tbody = document.getElementById('tabel-usia');
+            tbody.innerHTML = '';
+            if(db.siswa.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="16" class="p-4 text-center text-gray-500">Belum ada data siswa.</td></tr>`;
+                return;
+            }
+            db.siswa.forEach((s, idx) => {
+                let row = `<tr class="hover:bg-gray-50">
+                    <td class="border p-1.5 text-center">${idx + 1}</td>
+                    <td class="border p-1.5 text-left sticky left-0 bg-white font-medium uppercase whitespace-nowrap">${esc(s.nama)}</td>
+                    <td class="border p-1.5 text-center">${esc(s.lp)}</td>
+                    <td class="border p-1.5 text-left text-xs whitespace-nowrap">${esc(s.ttl)}</td>`;
+                daftarBulanUsia.forEach(m => {
+                    row += `<td class="border p-1 whitespace-nowrap">${hitungUsia(s.ttl, m.key)}</td>`;
+                });
+                row += '</tr>';
+                tbody.innerHTML += row;
+            });
+        }
+
+        async function cetakRekapUsia() {
+            if(db.siswa.length === 0) {
+                await showAlert('Belum ada data siswa untuk dicetak.');
+                return;
+            }
+            setOrientasiCetak('landscape', '8.5px');
+            const cfg = db.config;
+            const pa = document.getElementById('print-area');
+
+            let rowsHTML = '';
+            let jmlL = 0, jmlP = 0;
+            db.siswa.forEach((s, idx) => {
+                const lp = (s.lp || '').trim().toUpperCase();
+                if(lp === 'L') jmlL++;
+                else if(lp === 'P') jmlP++;
+
+                let colsUsia = '';
+                daftarBulanUsia.forEach(m => {
+                    colsUsia += `<td style="white-space:nowrap;">${hitungUsia(s.ttl, m.key)}</td>`;
+                });
+
+                rowsHTML += `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td class="text-left-print" style="font-weight:bold; text-transform:uppercase; white-space:nowrap;">${esc(s.nama)}</td>
+                        <td>${esc(lp)}</td>
+                        <td class="text-left-print" style="white-space:nowrap;">${esc(s.ttl)}</td>
+                        ${colsUsia}
+                    </tr>
+                `;
+            });
+
+            pa.innerHTML = `
+                <div style="font-family: 'Times New Roman', Times, serif; color: black; width: 100%;">
+                    <div style="text-align: center; margin-bottom: 8px; line-height: 1.2;">
+                        <h2 style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">DAFTAR REKAPITULASI USIA SISWA</h2>
+                        <h3 style="margin: 0; font-size: 13px; font-weight: bold; text-transform: uppercase;">${esc(cfg.namaSekolah)}</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 11px;">Kelas : ${esc(cfg.namaKelas)} &nbsp;&nbsp;|&nbsp;&nbsp; Tahun Pelajaran : 2026/2027</p>
+                    </div>
+
+                    <table class="print-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2" style="width: 24px;">No</th>
+                                <th rowspan="2">Nama Siswa</th>
+                                <th rowspan="2" style="width: 24px;">L/P</th>
+                                <th rowspan="2">Tempat, Tanggal Lahir</th>
+                                <th colspan="12">Usia Siswa Pada Awal Bulan (Tahun & Bulan)</th>
+                            </tr>
+                            <tr>
+                                ${daftarBulanUsia.map(m => `<th>${m.label}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHTML}
+                        </tbody>
+                    </table>
+
+                    <div style="margin-top: 6px; font-size: 10px; display: flex; gap: 20px;">
+                        <span><b>Jumlah Siswa:</b> ${db.siswa.length} orang (Laki-laki: ${jmlL}, Perempuan: ${jmlP})</span>
+                        <span><i>* Perhitungan usia dihitung per tanggal 1 setiap bulan berjalan.</i></span>
+                    </div>
+
+                    ${buatBlokTandaTangan()}
+                </div>
+            `;
+
+            pa.style.display = 'block';
+            window.print();
+            pa.style.display = 'none';
+        }
+
+        // ================= 4. MUTASI SISWA & CETAK 1 LEMBAR =================
+        const mutasiBulan = [
+            'Juli 2026','Agustus 2026','September 2026','Oktober 2026','November 2026','Desember 2026',
+            'Januari 2027','Februari 2027','Maret 2027','April 2027','Mei 2027','Juni 2027'
+        ];
+
+        function renderMutasi() {
+            const tbody = document.getElementById('tabel-mutasi');
+            tbody.innerHTML = '';
+            let prevAkhir = db.siswa.length; 
+            
+            mutasiBulan.forEach((bln, i) => {
+                if(!db.mutasi[bln]) db.mutasi[bln] = { awal: (i===0 ? db.siswa.length : prevAkhir), masuk: 0, keluar: 0 };
+                let m = db.mutasi[bln];
+                if(i === 0 && m.awal === 0 && db.siswa.length > 0) m.awal = db.siswa.length;
+                if(i > 0) {
+                    const prev = db.mutasi[mutasiBulan[i-1]];
+                    m.awal = (parseInt(prev.awal) || 0) + (parseInt(prev.masuk) || 0) - (parseInt(prev.keluar) || 0);
+                }
+                let akhir = (parseInt(m.awal) || 0) + (parseInt(m.masuk) || 0) - (parseInt(m.keluar) || 0);
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="border p-1.5 text-left font-medium">${bln}</td>
+                        <td class="border p-1.5">${m.awal}</td>
+                        <td class="border p-1"><input type="number" min="0" id="masuk-${i}" value="${m.masuk}" class="w-14 border rounded p-1 text-center focus:ring focus:ring-green-200"></td>
+                        <td class="border p-1"><input type="number" min="0" id="keluar-${i}" value="${m.keluar}" class="w-14 border rounded p-1 text-center focus:ring focus:ring-red-200"></td>
+                        <td class="border p-1.5 font-bold bg-gray-50">${akhir}</td>
+                    </tr>
+                `;
+            });
+
+            renderDetailMutasi();
+        }
+
+        async function simpanMutasi() {
+            mutasiBulan.forEach((bln, i) => {
+                db.mutasi[bln].masuk = parseInt(document.getElementById(`masuk-${i}`).value) || 0;
+                db.mutasi[bln].keluar = parseInt(document.getElementById(`keluar-${i}`).value) || 0;
+            });
+            simpanDB();
+            renderMutasi();
+            await showAlert('Rekap angka mutasi siswa berhasil disimpan!');
+        }
+
+        function renderDetailMutasi() {
+            const tbody = document.getElementById('tabel-mutasi-detail');
+            tbody.innerHTML = '';
+            if(db.mutasiDetail.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-500">Belum ada catatan rincian siswa masuk/keluar.</td></tr>`;
+                return;
+            }
+            db.mutasiDetail.forEach((item, idx) => {
+                const badge = item.jenis === 'Masuk' 
+                    ? `<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded font-semibold">Masuk</span>`
+                    : `<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded font-semibold">Keluar</span>`;
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="border p-1.5 text-center">${idx + 1}</td>
+                        <td class="border p-1.5 text-center whitespace-nowrap">${item.tgl ? fmtTglPendek(item.tgl) : '-'}</td>
+                        <td class="border p-1.5 text-center">${badge}</td>
+                        <td class="border p-1.5 font-semibold uppercase">${esc(item.nama)}</td>
+                        <td class="border p-1.5 text-center">${esc(item.nisn || '-')}</td>
+                        <td class="border p-1.5">${esc(item.ket || '-')}</td>
+                        <td class="border p-1.5 text-center">
+                            <button onclick="hapusDetailMutasi(${idx})" class="text-red-500 hover:underline">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function tambahDetailMutasi() {
+            const tgl = document.getElementById('mut-tgl').value;
+            const jenis = document.getElementById('mut-jenis').value;
+            const nama = document.getElementById('mut-nama').value.trim();
+            const nisn = document.getElementById('mut-nisn').value.trim();
+            const ket = document.getElementById('mut-ket').value.trim();
+
+            if(!nama) {
+                await showAlert('Nama lengkap siswa wajib diisi.');
+                return;
+            }
+
+            db.mutasiDetail.push({ id: Date.now(), tgl, jenis, nama, nisn, ket });
+            simpanDB();
+            
+            document.getElementById('mut-nama').value = '';
+            document.getElementById('mut-nisn').value = '';
+            document.getElementById('mut-ket').value = '';
+            renderDetailMutasi();
+        }
+
+        async function hapusDetailMutasi(idx) {
+            const ok = await showConfirm('Hapus catatan mutasi siswa ini?');
+            if(ok) {
+                db.mutasiDetail.splice(idx, 1);
+                simpanDB();
+                renderDetailMutasi();
+            }
+        }
+
+        function cetakMutasi() {
+            setOrientasiCetak('portrait', '10px');
+            const cfg = db.config;
+            const pa = document.getElementById('print-area');
+
+            let rowsRekap = '';
+            let totalMasuk = 0, totalKeluar = 0;
+            mutasiBulan.forEach((bln, i) => {
+                const m = db.mutasi[bln] || { awal: 0, masuk: 0, keluar: 0 };
+                const masuk = parseInt(m.masuk) || 0;
+                const keluar = parseInt(m.keluar) || 0;
+                const akhir = (parseInt(m.awal) || 0) + masuk - keluar;
+                totalMasuk += masuk;
+                totalKeluar += keluar;
+
+                rowsRekap += `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td class="text-left-print" style="font-weight:bold;">${bln}</td>
+                        <td>${m.awal}</td>
+                        <td>${masuk}</td>
+                        <td>${keluar}</td>
+                        <td style="font-weight:bold;">${akhir}</td>
+                    </tr>
+                `;
+            });
+
+            let rowsDetail = '';
+            if(db.mutasiDetail.length > 0) {
+                db.mutasiDetail.forEach((item, idx) => {
+                    rowsDetail += `
+                        <tr>
+                            <td>${idx + 1}</td>
+                            <td>${item.tgl ? fmtTglPendek(item.tgl) : '-'}</td>
+                            <td>${esc(item.jenis)}</td>
+                            <td class="text-left-print" style="text-transform:uppercase; font-weight:bold;">${esc(item.nama)}</td>
+                            <td>${esc(item.nisn || '-')}</td>
+                            <td class="text-left-print">${esc(item.ket || '-')}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                for(let k = 1; k <= 5; k++) {
+                    rowsDetail += `
+                        <tr>
+                            <td>${k}</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                    `;
+                }
+            }
+
+            pa.innerHTML = `
+                <div style="font-family: 'Times New Roman', Times, serif; color: black; max-width: 210mm; margin: 0 auto;">
+                    <div style="text-align: center; margin-bottom: 12px; line-height: 1.2;">
+                        <h2 style="margin: 0; font-size: 15px; font-weight: bold; text-transform: uppercase;">LAPORAN REKAPITULASI MUTASI SISWA</h2>
+                        <h3 style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">${esc(cfg.namaSekolah)}</h3>
+                        <p style="margin: 3px 0 0 0; font-size: 11px;">Kelas : ${esc(cfg.namaKelas)} &nbsp;&nbsp;|&nbsp;&nbsp; Tahun Pelajaran : 2026/2027</p>
+                    </div>
+
+                    <p style="font-size: 11px; font-weight: bold; margin-bottom: 4px;">A. Rekapitulasi Jumlah Siswa Per Bulan</p>
+                    <table class="print-table" style="margin-bottom: 14px;">
+                        <thead>
+                            <tr>
+                                <th style="width: 30px;">No</th>
+                                <th>Bulan</th>
+                                <th style="width: 85px;">Jumlah Awal</th>
+                                <th style="width: 85px;">Siswa Masuk</th>
+                                <th style="width: 85px;">Siswa Keluar</th>
+                                <th style="width: 85px;">Jumlah Akhir</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsRekap}
+                            <tr style="background-color: #f3f4f6; font-weight: bold;">
+                                <td colspan="3">Jumlah Total Mutasi Selama 1 Tahun Pelajaran</td>
+                                <td>${totalMasuk}</td>
+                                <td>${totalKeluar}</td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p style="font-size: 11px; font-weight: bold; margin-bottom: 4px;">B. Rincian Daftar Siswa Masuk dan Keluar</p>
+                    <table class="print-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30px;">No</th>
+                                <th style="width: 85px;">Tanggal</th>
+                                <th style="width: 65px;">Jenis</th>
+                                <th>Nama Lengkap Siswa</th>
+                                <th style="width: 85px;">NIS / NISN</th>
+                                <th>Sekolah Asal / Tujuan & Alasan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsDetail}
+                        </tbody>
+                    </table>
+
+                    ${buatBlokTandaTangan()}
+                </div>
+            `;
+
+            pa.style.display = 'block';
+            window.print();
+            pa.style.display = 'none';
+        }
+
+        // ================= 5. REKAP ABSENSI BERJEJER & CETAK =================
+        function getDaysInMonth(month, year) {
+            return new Date(year, month, 0).getDate();
+        }
+
+        function infoBulan(month, year) {
+            const n = getDaysInMonth(month, year);
+            let efektif = 0;
+            let lastEffectiveDateObj = null;
+            const list = [];
+            
+            for(let i = 1; i <= n; i++) {
+                const dateObj = new Date(year, month - 1, i);
+                const key = `${year}-${pad(month)}-${pad(i)}`;
+                const lib = getLibur(key);
+                const isSunday = dateObj.getDay() === 0;
+                
+                if(lib) {
+                    let item = list.find(x => x.lib.id === lib.id);
+                    if(!item) { item = { lib, hari: [] }; list.push(item); }
+                    item.hari.push(i);
+                } else if(!isSunday) {
+                    efektif++;
+                    lastEffectiveDateObj = dateObj;
+                }
+            }
+            
+            const legend = list.map(x => {
+                const a = x.hari[0], b = x.hari[x.hari.length - 1];
+                return { rentang: a === b ? `${a}` : `${a}–${b}`, ket: x.lib.ket, jenis: x.lib.jenis };
+            });
+            
+            return { efektif, legend, lastEffectiveDateObj };
+        }
+
+        function renderRekapAbsen() {
+            const filter = document.getElementById('pilih-bulan').value;
+            const [mStr, yStr] = filter.split('-');
+            const month = parseInt(mStr);
+            const year = parseInt(yStr);
+            const daysCount = getDaysInMonth(month, year);
+
+            const tableEl = document.getElementById('tabel-full-rekap');
+            
+            let thead = `<thead class="bg-gray-200 sticky top-0 z-10 shadow">
+                <tr>
+                    <th rowspan="2" class="border border-gray-400 p-1 text-center w-8">No</th>
+                    <th rowspan="2" class="border border-gray-400 p-1 text-left sticky left-0 bg-gray-200 z-20">Nama Siswa</th>
+                    <th colspan="${daysCount}" class="border border-gray-400 p-1">Tanggal & Hari</th>
+                    <th colspan="4" class="border border-gray-400 p-1 bg-blue-100">Jumlah</th>
+                </tr>
+                <tr>`;
+                
+            for(let i=1; i<=daysCount; i++) {
+                const lib = getLibur(`${year}-${mStr}-${pad(i)}`);
+                const isSunday = new Date(year, month - 1, i).getDay() === 0;
+                let cls = '', sty = '';
+                if(lib) { cls = 'text-amber-900'; sty = 'background:#fcd34d;'; }
+                else if(isSunday) { cls = 'bg-red-200 text-red-700'; sty = 'background:#fecaca;'; }
+                thead += `<th title="${lib ? esc(lib.ket) : ''}" style="${sty}" class="border border-gray-400 p-0.5 w-5 ${cls}">${i}</th>`;
+            }
+            thead += `<th class="border border-gray-400 p-1 w-7 bg-green-100">H</th>
+                      <th class="border border-gray-400 p-1 w-7 bg-yellow-100">S</th>
+                      <th class="border border-gray-400 p-1 w-7 bg-blue-100">I</th>
+                      <th class="border border-gray-400 p-1 w-7 bg-red-100">A</th>
+                </tr>
+            </thead>`;
+
+            let tbody = '<tbody>';
+            let grandTotalH = 0, grandTotalS = 0, grandTotalI = 0, grandTotalA = 0;
+            let maxHadir = -1;
+            let namaSiswaTerajin = '-';
+
+            db.siswa.forEach((s, idx) => {
+                let counts = { H:0, S:0, I:0, A:0 };
+                let row = `<tr class="hover:bg-gray-50 border-b">
+                    <td class="border border-gray-300 p-1 text-center">${idx + 1}</td>
+                    <td class="border border-gray-300 p-1 text-left font-medium uppercase whitespace-nowrap sticky left-0 bg-white z-10">${esc(s.nama)}</td>`;
+                
+                for(let i=1; i<=daysCount; i++) {
+                    let dateKey = `${year}-${mStr}-${pad(i)}`;
+                    let isSunday = new Date(year, month - 1, i).getDay() === 0;
+                    const lib = getLibur(dateKey);
+
+                    let status = (!isSunday && !lib && db.absen[dateKey] && db.absen[dateKey][s.id]) ? db.absen[dateKey][s.id] : '';
+                    
+                    if(status === 'H') counts.H++;
+                    else if(status === 'S') counts.S++;
+                    else if(status === 'I') counts.I++;
+                    else if(status === 'A') counts.A++;
+
+                    let displayStatus = status === 'H' ? '•' : status; 
+
+                    let textColor = '';
+                    if(status === 'S') textColor = 'text-yellow-600 font-bold';
+                    else if(status === 'I') textColor = 'text-blue-600 font-bold';
+                    else if(status === 'A') textColor = 'text-red-600 font-bold';
+                    else if(status === 'H') textColor = 'text-gray-800';
+
+                    let cellStyle = '';
+                    if(lib) cellStyle = 'background:#fde68a;';
+                    else if(isSunday) cellStyle = 'background:#fef2f2;';
+
+                    row += `<td title="${lib ? esc(lib.ket) : ''}" style="${cellStyle}" class="border border-gray-300 p-0.5 text-center ${textColor}">${displayStatus}</td>`;
+                }
+                
+                grandTotalH += counts.H;
+                grandTotalS += counts.S;
+                grandTotalI += counts.I;
+                grandTotalA += counts.A;
+
+                if(counts.H > maxHadir && db.siswa.length > 0) {
+                    maxHadir = counts.H;
+                    namaSiswaTerajin = s.nama;
+                }
+
+                row += `<td class="border border-gray-300 p-0.5 font-bold bg-green-50">${counts.H}</td>
+                        <td class="border border-gray-300 p-0.5 font-bold bg-yellow-50">${counts.S}</td>
+                        <td class="border border-gray-300 p-0.5 font-bold bg-blue-50">${counts.I}</td>
+                        <td class="border border-gray-300 p-0.5 font-bold bg-red-50">${counts.A}</td>
+                    </tr>`;
+                tbody += row;
+            });
+            
+            if(db.siswa.length === 0) {
+                tbody += `<tr><td colspan="${daysCount + 6}" class="p-4 text-center">Belum ada data siswa.</td></tr>`;
+            }
+
+            tbody += '</tbody>';
+            tableEl.innerHTML = thead + tbody;
+
+            const info = infoBulan(month, year);
+            document.getElementById('info-efektif').textContent = `Hari efektif belajar bulan ini: ${info.efektif} hari`;
+            document.getElementById('keterangan-libur').innerHTML = info.legend.length
+                ? '<b>Keterangan libur:</b> ' + info.legend.map(l =>
+                    `<span class="inline-flex items-center gap-1 mr-4"><span style="display:inline-block;width:10px;height:10px;background:#fcd34d;border:1px solid #d97706"></span>Tgl ${l.rentang}: ${esc(l.ket)}</span>`
+                  ).join('')
+                : '';
+
+            const totalSiswa = db.siswa.length;
+            const totalPotensialHadir = info.efektif * totalSiswa;
+            let persentaseHadir = totalPotensialHadir > 0 ? ((grandTotalH / totalPotensialHadir) * 100).toFixed(1) : '0';
+
+            document.getElementById('stat-hari-efektif').innerText = info.efektif + ' hari';
+            document.getElementById('stat-total-h').innerText = grandTotalH;
+            document.getElementById('stat-total-sia').innerText = `${grandTotalS} / ${grandTotalI} / ${grandTotalA}`;
+            document.getElementById('stat-persen-hadir').innerText = persentaseHadir + '%';
+            document.getElementById('stat-siswa-terajin').innerText = db.siswa.length > 0 ? namaSiswaTerajin : '-';
+        }
+
+        function cetakRekapAbsen() {
+            setOrientasiCetak('portrait', '9px');
+            const select = document.getElementById('pilih-bulan');
+            const namaBulan = select.options[select.selectedIndex].text;
+            const tableHTML = document.getElementById('tabel-full-rekap').innerHTML;
+            const [mStr, yStr] = select.value.split('-');
+            const mNum = parseInt(mStr);
+            const yNum = parseInt(yStr);
+            const info = infoBulan(mNum, yNum);
+            const cfg = db.config;
+            const kota = cfg.kota || 'Bandungsari';
+            
+            let tglLaporanStr = `${kota}, ........................ 202...`;
+            if(info.lastEffectiveDateObj) {
+                tglLaporanStr = `${kota}, ${fmtTglPanjang(info.lastEffectiveDateObj)}`;
+            }
+
+            const ketLibur = info.legend.length
+                ? 'Libur: ' + info.legend.map(l => `tgl ${l.rentang} = ${esc(l.ket)}`).join('; ') + '.'
+                : '';
+            
+            let totalH = 0, totalS = 0, totalI = 0, totalA = 0;
+            const daysCount = getDaysInMonth(mNum, yNum);
+            db.siswa.forEach(s => {
+                for(let i=1; i<=daysCount; i++) {
+                    let dateKey = `${yNum}-${mStr}-${pad(i)}`;
+                    let isSunday = new Date(yNum, mNum - 1, i).getDay() === 0;
+                    const lib = getLibur(dateKey);
+                    let status = (!isSunday && !lib && db.absen[dateKey] && db.absen[dateKey][s.id]) ? db.absen[dateKey][s.id] : '';
+                    if(status === 'H') totalH++;
+                    else if(status === 'S') totalS++;
+                    else if(status === 'I') totalI++;
+                    else if(status === 'A') totalA++;
+                }
+            });
+            const totalPotensial = info.efektif * db.siswa.length;
+            const persen = totalPotensial > 0 ? ((totalH / totalPotensial) * 100).toFixed(1) : '0';
+
+            const pa = document.getElementById('print-area');
+            
+            pa.innerHTML = `
+                <div style="padding: 4px; font-family: 'Times New Roman', Times, serif; color: black; background: white; max-width: 210mm; margin: 0 auto;">
+                    <div style="text-align: center; margin-bottom: 10px; line-height: 1.15;">
+                        <h2 style="margin: 0; font-size: 15px; text-transform: uppercase; font-weight: bold;">DAFTAR HADIR SISWA</h2>
+                        <h3 style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">${esc(cfg.namaSekolah)}</h3>
+                        <p style="margin: 3px 0 0 0; font-size: 11px;">Bulan : ${namaBulan} &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; Kelas : ${esc(cfg.namaKelas)} &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; Tahun Pelajaran : 2026/2027</p>
+                    </div>
+                    
+                    <table class="print-table">
+                        ${tableHTML.replace(/class="[^"]*"/g, '')}
+                    </table>
+                    
+                    <div style="margin-top: 6px; font-size: 10px; border: 1px solid #000; padding: 4px; display: flex; justify-content: space-between;">
+                        <span><b>Hari Efektif:</b> ${info.efektif} hari</span>
+                        <span><b>Total Hadir (H):</b> ${totalH}</span>
+                        <span><b>Sakit (S):</b> ${totalS}</span>
+                        <span><b>Izin (I):</b> ${totalI}</span>
+                        <span><b>Alpha (A):</b> ${totalA}</span>
+                        <span><b>Persentase Kehadiran:</b> ${persen}%</span>
+                    </div>
+
+                    <p style="font-size: 9px; margin-top: 3px; line-height: 1.1;">Keterangan: (•) Hadir, (S) Sakit, (I) Izin, (A) Alpha, kolom kuning = Libur, kolom merah muda = Minggu.<br>${ketLibur}</p>
+
+                    ${buatBlokTandaTangan(tglLaporanStr)}
+                </div>
+            `;
+            
+            pa.style.display = 'block';
+            window.print();
+            pa.style.display = 'none';
+        }
+
+        // ================= 6. CATATAN SISWA & CETAK 1 LEMBAR =================
+        function getNamaOrtuLengkap(siswaId) {
+            const c = db.catatan[siswaId];
+            if(!c) return '';
+            const ayah = (c.ayah || '').trim();
+            const ibu = (c.ibu || '').trim();
+            if(ayah && ibu) return `Bpk. ${ayah} / Ibu ${ibu}`;
+            if(ayah) return `Bpk. ${ayah}`;
+            if(ibu) return `Ibu ${ibu}`;
+            return (c.ortu || '').trim(); // Kompatibilitas data lama
+        }
+
+        function renderCatatan() {
+            const tbody = document.getElementById('tabel-catatan');
+            tbody.innerHTML = '';
+            if(db.siswa.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-500">Belum ada data siswa.</td></tr>`;
+                return;
+            }
+            db.siswa.forEach((s, idx) => {
+                let c = db.catatan[s.id] || { ayah:'', ibu:'', ortu:'', tb:'', bb:'', cacat:'', lain:'' };
+                const valAyah = c.ayah !== undefined ? c.ayah : (c.ortu || '');
+                const valIbu = c.ibu !== undefined ? c.ibu : '';
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="border p-2 text-center">${idx + 1}</td>
+                        <td class="border p-2 uppercase font-medium whitespace-nowrap">${esc(s.nama)}</td>
+                        <td class="border p-1"><input type="text" id="ayah-${s.id}" value="${esc(valAyah)}" placeholder="Nama Ayah" class="w-full border p-1 rounded"></td>
+                        <td class="border p-1"><input type="text" id="ibu-${s.id}" value="${esc(valIbu)}" placeholder="Nama Ibu" class="w-full border p-1 rounded"></td>
+                        <td class="border p-1"><input type="number" id="tb-${s.id}" value="${esc(c.tb)}" placeholder="cm" class="w-full border p-1 text-center rounded"></td>
+                        <td class="border p-1"><input type="number" id="bb-${s.id}" value="${esc(c.bb)}" placeholder="kg" class="w-full border p-1 text-center rounded"></td>
+                        <td class="border p-1"><input type="text" id="cacat-${s.id}" value="${esc(c.cacat)}" placeholder="-" class="w-full border p-1 rounded"></td>
+                        <td class="border p-1"><input type="text" id="lain-${s.id}" value="${esc(c.lain)}" placeholder="Catatan khusus..." class="w-full border p-1 rounded"></td>
+                    </tr>`;
+            });
+        }
+
+        function kumpulkanDataCatatan() {
+            db.siswa.forEach(s => {
+                const ayahEl = document.getElementById(`ayah-${s.id}`);
+                if(ayahEl) {
+                    const ayahVal = ayahEl.value.trim();
+                    const ibuVal = document.getElementById(`ibu-${s.id}`).value.trim();
+                    db.catatan[s.id] = {
+                        ayah: ayahVal,
+                        ibu: ibuVal,
+                        ortu: [ayahVal, ibuVal].filter(Boolean).join(' / '),
+                        tb: document.getElementById(`tb-${s.id}`).value,
+                        bb: document.getElementById(`bb-${s.id}`).value,
+                        cacat: document.getElementById(`cacat-${s.id}`).value,
+                        lain: document.getElementById(`lain-${s.id}`).value,
+                    };
+                }
+            });
+            simpanDB();
+        }
+
+        async function simpanCatatan() {
+            kumpulkanDataCatatan();
+            await showAlert('Catatan Kesehatan & Perkembangan Siswa berhasil disimpan!');
+        }
+
+        async function cetakCatatan() {
+            if(db.siswa.length === 0) {
+                await showAlert('Belum ada data siswa untuk dicetak.');
+                return;
+            }
+            kumpulkanDataCatatan();
+            setOrientasiCetak('landscape', '9.5px');
+            const cfg = db.config;
+            const pa = document.getElementById('print-area');
+
+            let rowsHTML = '';
+            db.siswa.forEach((s, idx) => {
+                const c = db.catatan[s.id] || { ayah:'', ibu:'', ortu:'', tb:'', bb:'', cacat:'', lain:'' };
+                const valAyah = c.ayah !== undefined ? c.ayah : (c.ortu || '-');
+                const valIbu = c.ibu !== undefined ? c.ibu : '-';
+                rowsHTML += `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${esc(s.noInduk || s.nisn || '-')}</td>
+                        <td class="text-left-print" style="font-weight:bold; text-transform:uppercase;">${esc(s.nama)}</td>
+                        <td>${esc(s.lp || '-')}</td>
+                        <td class="text-left-print">${esc(valAyah || '-')}</td>
+                        <td class="text-left-print">${esc(valIbu || '-')}</td>
+                        <td>${c.tb ? esc(c.tb) + ' cm' : '-'}</td>
+                        <td>${c.bb ? esc(c.bb) + ' kg' : '-'}</td>
+                        <td class="text-left-print">${esc(c.cacat || '-')}</td>
+                        <td class="text-left-print">${esc(c.lain || '-')}</td>
+                    </tr>
+                `;
+            });
+
+            pa.innerHTML = `
+                <div style="font-family: 'Times New Roman', Times, serif; color: black; width: 100%; margin: 0 auto;">
+                    <div style="text-align: center; margin-bottom: 10px; line-height: 1.2;">
+                        <h2 style="margin: 0; font-size: 15px; font-weight: bold; text-transform: uppercase;">CATATAN KESEHATAN, FISIK & PERKEMBANGAN SISWA</h2>
+                        <h3 style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase;">${esc(cfg.namaSekolah)}</h3>
+                        <p style="margin: 3px 0 0 0; font-size: 11px;">Kelas : ${esc(cfg.namaKelas)} &nbsp;&nbsp;|&nbsp;&nbsp; Tahun Pelajaran : 2026/2027</p>
+                    </div>
+
+                    <table class="print-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 25px;">No</th>
+                                <th style="width: 75px;">NIS / NISN</th>
+                                <th>Nama Siswa</th>
+                                <th style="width: 25px;">L/P</th>
+                                <th>Nama Ayah</th>
+                                <th>Nama Ibu</th>
+                                <th style="width: 55px;">Tinggi Badan</th>
+                                <th style="width: 55px;">Berat Badan</th>
+                                <th>Kelainan / Cacat Tubuh</th>
+                                <th>Catatan Khusus Lainnya</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHTML}
+                        </tbody>
+                    </table>
+
+                    ${buatBlokTandaTangan()}
+                </div>
+            `;
+
+            pa.style.display = 'block';
+            window.print();
+            pa.style.display = 'none';
+        }
+
+        // ================= 7. BIMBINGAN & KONSELING (BK) =================
+        let editBkId = null;
+
+        function getSelectedBkSiswaIds() {
+            return Array.from(document.querySelectorAll('.bk-siswa-cb:checked')).map(cb => String(cb.value));
+        }
+
+        function updateCounterSiswaBK() {
+            const count = getSelectedBkSiswaIds().length;
+            const badge = document.getElementById('bk-selected-count');
+            if(!badge) return;
+            if(count === 0) badge.innerText = '0 siswa dipilih';
+            else if(count === 1) badge.innerText = '1 siswa (Individu)';
+            else if(count === db.siswa.length && db.siswa.length > 0) badge.innerText = `${count} siswa (Klasikal)`;
+            else badge.innerText = `${count} siswa (Kelompok)`;
+        }
+
+        function pilihKlasikalBK() {
+            document.querySelectorAll('.bk-siswa-cb').forEach(cb => cb.checked = true);
+            updateCounterSiswaBK();
+        }
+
+        function resetPilihanSiswaBK() {
+            document.querySelectorAll('.bk-siswa-cb').forEach(cb => cb.checked = false);
+            updateCounterSiswaBK();
+        }
+
+        function populateDropdownSiswaBK(selectedIds = []) {
+            const container = document.getElementById('bk-siswa-list');
+            if(!container) return;
+            if(db.siswa.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-xs text-gray-500 p-2 text-center">Belum ada data siswa. Silakan impor/isi pada menu Data Siswa.</div>`;
+                updateCounterSiswaBK();
+                return;
+            }
+            const idSet = new Set(selectedIds.map(String));
+            container.innerHTML = db.siswa.map((s, idx) => {
+                const checked = idSet.has(String(s.id)) ? 'checked' : '';
+                return `
+                    <label class="flex items-center gap-2 p-1.5 rounded border border-gray-200 hover:bg-indigo-50 cursor-pointer text-xs select-none">
+                        <input type="checkbox" value="${s.id}" ${checked} onchange="updateCounterSiswaBK()" class="bk-siswa-cb w-4 h-4 text-indigo-600 rounded cursor-pointer">
+                        <span class="truncate font-medium uppercase">${idx + 1}. ${esc(s.nama)}</span>
+                    </label>
+                `;
+            }).join('');
+            updateCounterSiswaBK();
+        }
+
+        function getBkSiswaListNormalized(item) {
+            if(Array.isArray(item.siswaList) && item.siswaList.length > 0) {
+                return item.siswaList;
+            }
+            if(item.siswaId === 'KLASIKAL') {
+                return db.siswa.map(s => ({ id: String(s.id), nama: s.nama, nisn: s.nisn || s.noInduk || '-' }));
+            }
+            return [{ id: String(item.siswaId || ''), nama: item.namaSiswa || '-', nisn: item.nisn || '-' }];
+        }
+
+        function renderBK() {
+            if(!editBkId) populateDropdownSiswaBK(getSelectedBkSiswaIds());
+            const tbody = document.getElementById('tabel-bk');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+
+            const sorted = [...db.bk].sort((a, b) => b.tgl.localeCompare(a.tgl));
+            if(sorted.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-500">Belum ada catatan Bimbingan & Konseling.</td></tr>`;
+                return;
+            }
+
+            sorted.forEach((item, idx) => {
+                const badge = item.status === 'Tuntas'
+                    ? `<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded font-semibold">Tuntas</span>`
+                    : `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold">Pemantauan</span>`;
+
+                const listSiswa = getBkSiswaListNormalized(item);
+                let namaTampil = '';
+                if(listSiswa.length > 1) {
+                    const labelJenis = (db.siswa.length > 0 && listSiswa.length === db.siswa.length)
+                        ? 'Layanan Klasikal'
+                        : `BK Kelompok (${listSiswa.length} Siswa)`;
+                    namaTampil = `
+                        <span class="inline-block bg-indigo-100 text-indigo-800 text-[10px] px-1.5 py-0.5 rounded font-bold mb-1">${labelJenis}</span>
+                        <div class="font-bold uppercase leading-snug">${listSiswa.map(s => esc(s.nama)).join(', ')}</div>
+                    `;
+                } else {
+                    namaTampil = `
+                        <span class="inline-block bg-gray-100 text-gray-700 text-[10px] px-1.5 py-0.5 rounded font-semibold mb-1">BK Individu</span>
+                        <div class="font-bold uppercase">${esc(item.namaSiswa)}</div>
+                    `;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-indigo-50/40 align-top">
+                        <td class="border p-2 text-center">${idx + 1}</td>
+                        <td class="border p-2 text-center whitespace-nowrap">${fmtTglPendek(item.tgl)}</td>
+                        <td class="border p-2">${namaTampil}</td>
+                        <td class="border p-2 text-center">${esc(item.bidang)}</td>
+                        <td class="border p-2">${esc(item.masalah)}</td>
+                        <td class="border p-2">${esc(item.tindakan)}</td>
+                        <td class="border p-2 text-center">${badge}</td>
+                        <td class="border p-2 text-center whitespace-nowrap">
+                            <button onclick="cetakLaporanBK('individu', ${item.id})" class="text-indigo-700 hover:underline font-semibold mr-1.5" title="Cetak Berita Acara BK">Cetak</button>
+                            <button onclick="editBK(${item.id})" class="text-blue-600 hover:underline mr-1.5">Edit</button>
+                            <button onclick="hapusBK(${item.id})" class="text-red-500 hover:underline">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function simpanBK() {
+            const tgl = document.getElementById('bk-tgl').value;
+            const selectedIds = getSelectedBkSiswaIds();
+            const bidang = document.getElementById('bk-bidang').value;
+            const status = document.getElementById('bk-status').value;
+            const masalah = document.getElementById('bk-masalah').value.trim();
+            const tindakan = document.getElementById('bk-tindakan').value.trim();
+
+            if(!tgl) { await showAlert('Tanggal wajib diisi.'); return; }
+            if(selectedIds.length === 0) { await showAlert('Silakan centang minimal satu nama siswa.'); return; }
+            if(!masalah) { await showAlert('Permasalahan / kebutuhan siswa wajib diisi.'); return; }
+            if(!tindakan) { await showAlert('Tindakan & tindak lanjut wajib diisi.'); return; }
+
+            const siswaList = selectedIds.map(id => {
+                const sObj = db.siswa.find(s => String(s.id) === id);
+                return sObj ? { id: String(sObj.id), nama: sObj.nama, nisn: sObj.nisn || sObj.noInduk || '-' } : null;
+            }).filter(Boolean);
+
+            const jenisLayanan = siswaList.length === 1
+                ? 'Individu'
+                : (siswaList.length === db.siswa.length ? 'Klasikal' : 'Kelompok');
+            const namaSiswa = siswaList.map(s => s.nama).join(', ');
+            const nisn = siswaList.map(s => s.nisn).join(', ');
+            const siswaId = siswaList.length === 1 ? siswaList[0].id : 'KELOMPOK';
+
+            if(editBkId) {
+                const idx = db.bk.findIndex(x => x.id === editBkId);
+                if(idx !== -1) {
+                    db.bk[idx] = { ...db.bk[idx], tgl, siswaId, siswaList, jenisLayanan, namaSiswa, nisn, bidang, status, masalah, tindakan };
+                }
+            } else {
+                db.bk.push({ id: Date.now(), tgl, siswaId, siswaList, jenisLayanan, namaSiswa, nisn, bidang, status, masalah, tindakan });
+            }
+
+            simpanDB();
+            batalEditBK();
+            renderBK();
+            await showAlert('Catatan Bimbingan & Konseling berhasil disimpan!');
+        }
+
+        function editBK(id) {
+            const item = db.bk.find(x => x.id === id);
+            if(!item) return;
+            editBkId = id;
+            document.getElementById('bk-tgl').value = item.tgl;
+            const listSiswa = getBkSiswaListNormalized(item);
+            populateDropdownSiswaBK(listSiswa.map(s => s.id));
+            document.getElementById('bk-bidang').value = item.bidang;
+            document.getElementById('bk-status').value = item.status;
+            document.getElementById('bk-masalah').value = item.masalah;
+            document.getElementById('bk-tindakan').value = item.tindakan;
+
+            document.getElementById('bk-form-title').innerText = '✏️ Edit Catatan Layanan BK';
+            document.getElementById('btn-simpan-bk').innerText = '💾 Simpan Perubahan';
+            document.getElementById('btn-batal-bk').classList.remove('hidden');
+        }
+
+        function batalEditBK() {
+            editBkId = null;
+            document.getElementById('bk-tgl').value = selectedDate;
+            populateDropdownSiswaBK([]);
+            document.getElementById('bk-bidang').selectedIndex = 0;
+            document.getElementById('bk-status').selectedIndex = 0;
+            document.getElementById('bk-masalah').value = '';
+            document.getElementById('bk-tindakan').value = '';
+
+            document.getElementById('bk-form-title').innerText = '📝 Input Catatan Layanan BK';
+            document.getElementById('btn-simpan-bk').innerText = '💾 Simpan Catatan BK';
+            document.getElementById('btn-batal-bk').classList.add('hidden');
+        }
+
+        async function hapusBK(id) {
+            const ok = await showConfirm('Hapus catatan Bimbingan & Konseling ini?');
+            if(ok) {
+                db.bk = db.bk.filter(x => x.id !== id);
+                if(editBkId === id) batalEditBK();
+                simpanDB();
+                renderBK();
+            }
+        }
+
+        async function cetakLaporanBK(mode = 'rekap', itemId = null) {
+            const cfg = db.config;
+            const pa = document.getElementById('print-area');
+            const kota = cfg.kota || 'Bandungsari';
+
+            if(mode === 'individu') {
+                const item = db.bk.find(x => x.id === itemId);
+                if(!item) return;
+
+                const listSiswa = getBkSiswaListNormalized(item);
+                const isKelompok = listSiswa.length > 1;
+                const jenisLayananLabel = listSiswa.length === 1
+                    ? 'Bimbingan & Konseling Individu'
+                    : (db.siswa.length > 0 && listSiswa.length === db.siswa.length
+                        ? `Bimbingan & Konseling Klasikal (${listSiswa.length} Siswa)`
+                        : `Bimbingan & Konseling Kelompok (${listSiswa.length} Siswa)`);
+
+                let identitasPesertaHTML = '';
+                let ttdOrtuHTML = '';
+
+                if(!isKelompok) {
+                    const sSingle = listSiswa[0] || { id: item.siswaId, nama: item.namaSiswa, nisn: item.nisn };
+                    const namaOrtu = getNamaOrtuLengkap(sSingle.id) || '........................................';
+                    identitasPesertaHTML = `
+                        <tr>
+                            <td style="padding: 2px 0;">Nama Peserta Didik</td>
+                            <td>:</td>
+                            <td style="font-weight: bold; text-transform: uppercase;">${esc(sSingle.nama)}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 2px 0;">NIS / NISN</td>
+                            <td>:</td>
+                            <td>${esc(sSingle.nisn || '-')}</td>
+                        </tr>
+                    `;
+                    ttdOrtuHTML = `
+                        <div style="text-align: center; width: 32%;">
+                            <p style="margin: 0;">Orang Tua / Wali Murid,</p>
+                            <br><br><br><br>
+                            <p style="text-decoration: underline; font-weight: bold; margin-bottom: 2px;">${esc(namaOrtu)}</p>
+                        </div>
+                    `;
+                } else {
+                    const barisAnggota = listSiswa.map((s, i) => `
+                        <tr>
+                            <td style="width: 28px;">${i + 1}</td>
+                            <td class="text-left-print" style="font-weight: bold; text-transform: uppercase;">${esc(s.nama)}</td>
+                            <td style="width: 110px;">${esc(s.nisn || '-')}</td>
+                            <td style="width: 90px;">&nbsp;</td>
+                        </tr>
+                    `).join('');
+                    identitasPesertaHTML = `
+                        <tr>
+                            <td style="padding: 4px 0; vertical-align: top;">Daftar Peserta Didik</td>
+                            <td style="vertical-align: top;">:</td>
+                            <td>
+                                <table class="print-table" style="font-size: 10.5px; margin-top: 2px;">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 28px;">No</th>
+                                            <th>Nama Peserta Didik</th>
+                                            <th style="width: 110px;">NIS / NISN</th>
+                                            <th style="width: 90px;">Paraf Siswa</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${barisAnggota}</tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    `;
+                    ttdOrtuHTML = `
+                        <div style="text-align: center; width: 32%;">
+                            <p style="margin: 0;">Perwakilan Orang Tua / Wali,</p>
+                            <br><br><br><br>
+                            <p style="text-decoration: underline; font-weight: bold; margin-bottom: 2px;">........................................</p>
+                        </div>
+                    `;
+                }
+
+                setOrientasiCetak('portrait', '11px');
+                pa.innerHTML = `
+                    <div style="font-family: 'Times New Roman', Times, serif; color: black; max-width: 210mm; margin: 0 auto; line-height: 1.35;">
+                        <div style="text-align: center; margin-bottom: 14px;">
+                            <h3 style="margin: 0; font-size: 14px; font-weight: bold; text-decoration: underline; text-transform: uppercase;">BERITA ACARA LAYANAN BIMBINGAN DAN KONSELING</h3>
+                            <h4 style="margin: 3px 0 0 0; font-size: 12px; font-weight: bold; text-transform: uppercase;">${esc(cfg.namaSekolah)}</h4>
+                            <p style="margin: 2px 0 0 0; font-size: 11px;">Kelas / Fase : ${esc(cfg.namaKelas)} (Fase C) &nbsp;&nbsp;|&nbsp;&nbsp; Tahun Pelajaran : 2026/2027</p>
+                        </div>
+
+                        <table style="width: 100%; font-size: 11.5px; margin-bottom: 12px; border-collapse: collapse;">
+                            <tr>
+                                <td style="width: 165px; padding: 2px 0;">Hari / Tanggal</td>
+                                <td style="width: 12px;">:</td>
+                                <td>${dateFromKey(item.tgl).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 2px 0;">Jenis & Bidang Layanan</td>
+                                <td>:</td>
+                                <td><b>${esc(jenisLayananLabel)} — Bidang ${esc(item.bidang)}</b></td>
+                            </tr>
+                            ${identitasPesertaHTML}
+                        </table>
+
+                        <table class="print-table" style="font-size: 11.5px; text-align: left; margin-bottom: 12px;">
+                            <tr>
+                                <th style="text-align: left; padding: 6px 8px;">I. IDENTIFIKASI MASALAH / KEBUTUHAN SISWA</th>
+                            </tr>
+                            <tr>
+                                <td class="text-left-print" style="padding: 8px; height: 75px; vertical-align: top;">${esc(item.masalah)}</td>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left; padding: 6px 8px;">II. PENANGANAN, KESEPAKATAN & TINDAK LANJUT</th>
+                            </tr>
+                            <tr>
+                                <td class="text-left-print" style="padding: 8px; height: 85px; vertical-align: top;">${esc(item.tindakan)}</td>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left; padding: 6px 8px;">III. STATUS LAYANAN</th>
+                            </tr>
+                            <tr>
+                                <td class="text-left-print" style="padding: 8px;">Status Pendampingan: <b>${esc(item.status)}</b></td>
+                            </tr>
+                        </table>
+
+                        <div style="margin-top: 18px; width: 100%; display: flex; justify-content: space-between; font-size: 11px; page-break-inside: avoid;">
+                            ${ttdOrtuHTML}
+                            <div style="text-align: center; width: 32%;">
+                                <p style="margin: 0;">Mengetahui,<br>Kepala Sekolah</p>
+                                <br><br><br>
+                                <p style="text-decoration: underline; font-weight: bold; margin-bottom: 2px;">${esc(cfg.namaKs)}</p>
+                                <p style="margin: 0;">NIP. ${esc(cfg.nipKs)}</p>
+                            </div>
+                            <div style="text-align: center; width: 32%;">
+                                <p style="margin: 0;">${esc(kota)}, ${fmtTglPanjang(dateFromKey(item.tgl))}<br>Guru Kelas ${esc(cfg.namaKelas)}</p>
+                                <br><br><br>
+                                <p style="text-decoration: underline; font-weight: bold; margin-bottom: 2px;">${esc(cfg.namaGuru)}</p>
+                                <p style="margin: 0;">NIP. ${esc(cfg.nipGuru)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                pa.style.display = 'block';
+                window.print();
+                pa.style.display = 'none';
+                return;
+            }
+
+            // Rekap BK
+            const sorted = [...db.bk].sort((a, b) => a.tgl.localeCompare(b.tgl));
+            if(sorted.length === 0) {
+                await showAlert('Belum ada data Bimbingan & Konseling untuk dicetak.');
+                return;
+            }
+
+            setOrientasiCetak('landscape', '9.5px');
+            let rowsHTML = '';
+            sorted.forEach((item, idx) => {
+                const listSiswa = getBkSiswaListNormalized(item);
+                const namaRekap = listSiswa.length > 1
+                    ? `<i>[Kelompok - ${listSiswa.length} Siswa]</i><br>${listSiswa.map((s, i) => `${i + 1}. ${esc(s.nama)}`).join('<br>')}`
+                    : esc(item.namaSiswa);
+                const nisnRekap = listSiswa.length > 1
+                    ? listSiswa.map(s => esc(s.nisn || '-')).join('<br>')
+                    : esc(item.nisn || '-');
+
+                rowsHTML += `
+                    <tr>
+                        <td class="valign-top-print">${idx + 1}</td>
+                        <td class="valign-top-print" style="white-space: nowrap;">${fmtTglPendek(item.tgl)}</td>
+                        <td class="text-left-print valign-top-print" style="font-weight: bold; text-transform: uppercase;">${namaRekap}</td>
+                        <td class="valign-top-print">${nisnRekap}</td>
+                        <td class="valign-top-print">${esc(item.bidang)}</td>
+                        <td class="text-left-print valign-top-print">${esc(item.masalah)}</td>
+                        <td class="text-left-print valign-top-print">${esc(item.tindakan)}</td>
+                        <td class="valign-top-print">${esc(item.status)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function simpanBK() {
+            const tgl = document.getElementById('bk-tgl').value;
+            const siswaVal = document.getElementById('bk-siswa').value;
+            const bidang = document.getElementById('bk-bidang').value;
+            const status = document.getElementById('bk-status').value;
+            const masalah = document.getElementById('bk-masalah').value.trim();
+            const tindakan = document.getElementById('bk-tindakan').value.trim();
+
+            if(!tgl) { await showAlert('Tanggal wajib diisi.'); return; }
+            if(!siswaVal) { await showAlert('Silakan pilih nama siswa.'); return; }
+            if(!masalah) { await showAlert('Permasalahan / kebutuhan siswa wajib diisi.'); return; }
+            if(!tindakan) { await showAlert('Tindakan & tindak lanjut wajib diisi.'); return; }
+
+            let namaSiswa = 'LAYANAN KLASIKAL KELAS';
+            let nisn = '-';
+            if(siswaVal !== 'KLASIKAL') {
+                const sObj = db.siswa.find(s => String(s.id) === String(siswaVal));
+                if(sObj) {
+                    namaSiswa = sObj.nama;
+                    nisn = sObj.nisn || sObj.noInduk || '-';
+                }
+            }
+
+            if(editBkId) {
+                const idx = db.bk.findIndex(x => x.id === editBkId);
+                if(idx !== -1) {
+                    db.bk[idx] = { ...db.bk[idx], tgl, siswaId: siswaVal, namaSiswa, nisn, bidang, status, masalah, tindakan };
+                }
+            } else {
+                db.bk.push({ id: Date.now(), tgl, siswaId: siswaVal, namaSiswa, nisn, bidang, status, masalah, tindakan });
+            }
+
+            simpanDB();
+            batalEditBK();
+            renderBK();
+            await showAlert('Catatan Bimbingan & Konseling berhasil disimpan!');
+        }
+
+        function editBK(id) {
+            const item = db.bk.find(x => x.id === id);
+            if(!item) return;
+            editBkId = id;
+            document.getElementById('bk-tgl').value = item.tgl;
+            document.getElementById('bk-siswa').value = item.siswaId;
+            document.getElementById('bk-bidang').value = item.bidang;
+            document.getElementById('bk-status').value = item.status;
+            document.getElementById('bk-masalah').value = item.masalah;
+            document.getElementById('bk-tindakan').value = item.tindakan;
+
+            document.getElementById('bk-form-title').innerText = '✏️ Edit Catatan Layanan BK';
+            document.getElementById('btn-simpan-bk').innerText = '💾 Simpan Perubahan';
+            document.getElementById('btn-batal-bk').classList.remove('hidden');
+        }
+
+        function batalEditBK() {
+            editBkId = null;
+            document.getElementById('bk-tgl').value = selectedDate;
+            document.getElementById('bk-siswa').selectedIndex = 0;
+            document.getElementById('bk-bidang').selectedIndex = 0;
+            document.getElementById('bk-status').selectedIndex = 0;
+            document.getElementById('bk-masalah').value = '';
+            document.getElementById('bk-tindakan').value = '';
+
+            document.getElementById('bk-form-title').innerText = '📝 Input Catatan Layanan BK';
+            document.getElementById('btn-simpan-bk').innerText = '💾 Simpan Catatan BK';
+            document.getElementById('btn-batal-bk').classList.add('hidden');
+        }
+
+        async function hapusBK(id) {
+            const ok = await showConfirm('Hapus catatan Bimbingan & Konseling ini?');
+            if(ok) {
+                db.bk = db.bk.filter(x => x.id !== id);
+                if(editBkId === id) batalEditBK();
+                simpanDB();
+                renderBK();
+            }
+        }
+
+        async function cetakLaporanBK(mode = 'rekap', itemId = null) {
+            const cfg = db.config;
+            const pa = document.getElementById('print-area');
+            const kota = cfg.kota || 'Bandungsari';
+
+            if(mode === 'individu') {
+                const item = db.bk.find(x => x.id === itemId);
+                if(!item) return;
+
+                const namaOrtu = getNamaOrtuLengkap(item.siswaId) || '........................................';
+
+                setOrientasiCetak('portrait', '11px');
+                pa.innerHTML = `
+                    <div style="font-family: 'Times New Roman', Times, serif; color: black; max-width: 210mm; margin: 0 auto; line-height: 1.35;">
+                        <div style="text-align: center; margin-bottom: 14px;">
+                            <h3 style="margin: 0; font-size: 14px; font-weight: bold; text-decoration: underline; text-transform: uppercase;">BERITA ACARA LAYANAN BIMBINGAN DAN KONSELING</h3>
+                            <h4 style="margin: 3px 0 0 0; font-size: 12px; font-weight: bold; text-transform: uppercase;">${esc(cfg.namaSekolah)}</h4>
+                            <p style="margin: 2px 0 0 0; font-size: 11px;">Kelas / Fase : ${esc(cfg.namaKelas)} (Fase C) &nbsp;&nbsp;|&nbsp;&nbsp; Tahun Pelajaran : 2026/2027</p>
+                        </div>
+
+                        <table style="width: 100%; font-size: 11.5px; margin-bottom: 12px; border-collapse: collapse;">
+                            <tr>
+                                <td style="width: 180px; padding: 2px 0;">Hari / Tanggal</td>
+                                <td style="width: 12px;">:</td>
+                                <td>${dateFromKey(item.tgl).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 2px 0;">Nama Peserta Didik</td>
+                                <td>:</td>
+                                <td style="font-weight: bold; text-transform: uppercase;">${esc(item.namaSiswa)}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 2px 0;">NIS / NISN</td>
+                                <td>:</td>
+                                <td>${esc(item.nisn || '-')}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 2px 0;">Bidang Bimbingan</td>
+                                <td>:</td>
+                                <td><b>Bimbingan ${esc(item.bidang)}</b></td>
+                            </tr>
+                        </table>
+
+                        <table class="print-table" style="font-size: 11.5px; text-align: left; margin-bottom: 12px;">
+                            <tr>
+                                <th style="text-align: left; padding: 6px 8px;">I. IDENTIFIKASI MASALAH / KEBUTUHAN SISWA</th>
+                            </tr>
+                            <tr>
+                                <td class="text-left-print" style="padding: 8px; height: 85px; vertical-align: top;">${esc(item.masalah)}</td>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left; padding: 6px 8px;">II. PENANGANAN, KESEPAKATAN & TINDAK LANJUT</th>
+                            </tr>
+                            <tr>
+                                <td class="text-left-print" style="padding: 8px; height: 95px; vertical-align: top;">${esc(item.tindakan)}</td>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left; padding: 6px 8px;">III. STATUS LAYANAN</th>
+                            </tr>
+                            <tr>
+                                <td class="text-left-print" style="padding: 8px;">Status Pendampingan: <b>${esc(item.status)}</b></td>
+                            </tr>
+                        </table>
+
+                        <div style="margin-top: 18px; width: 100%; display: flex; justify-content: space-between; font-size: 11px; page-break-inside: avoid;">
+                            <div style="text-align: center; width: 32%;">
+                                <p style="margin: 0;">Orang Tua / Wali Murid,</p>
+                                <br><br><br><br>
+                                <p style="text-decoration: underline; font-weight: bold; margin-bottom: 2px;">${esc(namaOrtu)}</p>
+                            </div>
+                            <div style="text-align: center; width: 32%;">
+                                <p style="margin: 0;">Mengetahui,<br>Kepala Sekolah</p>
+                                <br><br><br>
+                                <p style="text-decoration: underline; font-weight: bold; margin-bottom: 2px;">${esc(cfg.namaKs)}</p>
+                                <p style="margin: 0;">NIP. ${esc(cfg.nipKs)}</p>
+                            </div>
+                            <div style="text-align: center; width: 32%;">
+                                <p style="margin: 0;">${esc(kota)}, ${fmtTglPanjang(dateFromKey(item.tgl))}<br>Guru Kelas ${esc(cfg.namaKelas)}</p>
+                                <br><br><br>
+                                <p style="text-decoration: underline; font-weight: bold; margin-bottom: 2px;">${esc(cfg.namaGuru)}</p>
+                                <p style="margin: 0;">NIP. ${esc(cfg.nipGuru)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                pa.style.display = 'block';
+                window.print();
+                pa.style.display = 'none';
+                return;
+            }
+
+            // Rekap BK
+            const sorted = [...db.bk].sort((a, b) => a.tgl.localeCompare(b.tgl));
+            if(sorted.length === 0) {
+                await showAlert('Belum ada data Bimbingan & Konseling untuk dicetak.');
+                return;
+            }
+
+            setOrientasiCetak('landscape', '9.5px');
+            let rowsHTML = '';
+            sorted.forEach((item, idx) => {
+                rowsHTML += `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td style="white-space: nowrap;">${fmtTglPendek(item.tgl)}</td>
+                        <td class="text-left-print" style="font-weight: bold; text-transform: uppercase;">${esc(item.namaSiswa)}</td>
+                        <td>${esc(item.nisn || '-')}</td>
+                        <td>${esc(item.bidang)}</td>
+                        <td class="text-left-print valign-top-print">${esc(item.masalah)}</td>
+                        <td class="text-left-print valign-top-print">${esc(item.tindakan)}</td>
+                        <td>${esc(item.status)}</td>
+                    </tr>
+                `;
+            });
+
+            pa.innerHTML = `
+                <div style="font-family: 'Times New Roman', Times, serif; color: black; width: 100%;">
+                    <div style="text-align: center; margin-bottom: 10px; line-height: 1.2;">
+                        <h2 style="margin: 0; font-size: 15px; font-weight: bold; text-decoration: underline; text-transform: uppercase;">BERITA ACARA / LAPORAN PELAKSANAAN BIMBINGAN DAN KONSELING</h2>
+                        <h3 style="margin: 2px 0; font-size: 13px; font-weight: bold; text-transform: uppercase;">${esc(cfg.namaSekolah)}</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 11px;">Kelas / Fase : ${esc(cfg.namaKelas)} (Fase C) &nbsp;&nbsp;|&nbsp;&nbsp; Tahun Pelajaran : 2026/2027</p>
+                    </div>
+
+                    <table class="print-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 24px;">No</th>
+                                <th style="width: 68px;">Tanggal</th>
+                                <th style="width: 135px;">Nama Siswa</th>
+                                <th style="width: 75px;">NIS / NISN</th>
+                                <th style="width: 90px;">Bidang</th>
+                                <th>Permasalahan / Kebutuhan Siswa</th>
+                                <th>Tindakan & Tindak Lanjut</th>
+                                <th style="width: 80px;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHTML}
+                        </tbody>
+                    </table>
+
+                    ${buatBlokTandaTangan()}
+                </div>
+            `;
+            pa.style.display = 'block';
+            window.print();
+            pa.style.display = 'none';
+        }
+
+        // ================= 8. BUKU KERJA SAMA ORANG TUA (KEMENDIKDASMEN) =================
+        let editOrtuId = null;
+
+        function populateDropdownSiswaOrtu() {
+            const sel = document.getElementById('ortu-siswa');
+            if(!sel) return;
+            const currentVal = sel.value;
+            sel.innerHTML = `<option value="">-- Pilih Siswa --</option>
+                             <option value="PAGUYUBAN">PAGUYUBAN ORANG TUA KELAS (RAPAT KLASIKAL)</option>`;
+            db.siswa.forEach(s => {
+                sel.innerHTML += `<option value="${s.id}">${esc(s.nama)} (${esc(s.nisn || s.noInduk || '-')})</option>`;
+            });
+            if(currentVal) sel.value = currentVal;
+        }
+
+        function isiOtomatisNamaOrtu() {
+            const val = document.getElementById('ortu-siswa').value;
+            const inputWali = document.getElementById('ortu-nama-wali');
+            if(val === 'PAGUYUBAN') {
+                inputWali.value = 'Seluruh Orang Tua / Wali Murid Kelas';
+                return;
+            }
+            if(!val) {
+                inputWali.value = '';
+                return;
+            }
+            inputWali.value = getNamaOrtuLengkap(val);
+        }
+
+        function renderOrtu() {
+            populateDropdownSiswaOrtu();
+            const tbody = document.getElementById('tabel-ortu');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+
+            const sorted = [...db.ortu].sort((a, b) => b.tgl.localeCompare(a.tgl));
+            if(sorted.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-500">Belum ada catatan kerja sama dengan orang tua.</td></tr>`;
+                return;
+            }
+
+            sorted.forEach((item, idx) => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-teal-50/40 align-top">
+                        <td class="border p-2 text-center">${idx + 1}</td>
+                        <td class="border p-2 text-center whitespace-nowrap">${fmtTglPendek(item.tgl)}</td>
+                        <td class="border p-2">
+                            <div class="font-bold uppercase text-gray-900">${esc(item.namaSiswa)}</div>
+                            <div class="text-[11px] text-teal-800">Ortu/Wali: ${esc(item.namaWali)}</div>
+                        </td>
+                        <td class="border p-2 text-center">${esc(item.bentuk)}</td>
+                        <td class="border p-2">${esc(item.topik)}</td>
+                        <td class="border p-2">${esc(item.hasil)}</td>
+                        <td class="border p-2 text-center whitespace-nowrap">
+                            <button onclick="cetakLaporanOrtu('individu', ${item.id})" class="text-teal-700 hover:underline font-semibold mr-1.5" title="Cetak Lembar Kerja Sama">Cetak</button>
+                            <button onclick="editOrtu(${item.id})" class="text-blue-600 hover:underline mr-1.5">Edit</button>
+                            <button onclick="hapusOrtu(${item.id})" class="text-red-500 hover:underline">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function simpanOrtu() {
+            const tgl = document.getElementById('ortu-tgl').value;
+            const siswaVal = document.getElementById('ortu-siswa').value;
+            const namaWali = document.getElementById('ortu-nama-wali').value.trim();
+            const bentuk = document.getElementById('ortu-bentuk').value;
+            const topik = document.getElementById('ortu-topik').value.trim();
+            const hasil = document.getElementById('ortu-hasil').value.trim();
+
+            if(!tgl) { await showAlert('Tanggal wajib diisi.'); return; }
+            if(!siswaVal) { await showAlert('Silakan pilih nama siswa.'); return; }
+            if(!namaWali) { await showAlert('Nama orang tua/wali wajib diisi.'); return; }
+            if(!topik) { await showAlert('Hal yang dibahas wajib diisi.'); return; }
+            if(!hasil) { await showAlert('Kesepakatan & tindak lanjut wajib diisi.'); return; }
+
+            let namaSiswa = 'PAGUYUBAN ORANG TUA KELAS';
+            let nisn = '-';
+            if(siswaVal !== 'PAGUYUBAN') {
+                const sObj = db.siswa.find(s => String(s.id) === String(siswaVal));
+                if(sObj) {
+                    namaSiswa = sObj.nama;
+                    nisn = sObj.nisn || sObj.noInduk || '-';
+                    if(!db.catatan[sObj.id]) {
+                        db.catatan[sObj.id] = { ayah: namaWali, ibu: '', ortu: namaWali, tb: '', bb: '', cacat: '', lain: '' };
+                    } else if(!db.catatan[sObj.id].ayah && !db.catatan[sObj.id].ibu && !db.catatan[sObj.id].ortu) {
+                        db.catatan[sObj.id].ayah = namaWali;
+                        db.catatan[sObj.id].ortu = namaWali;
+                    }
+                }
+            }
+
+            if(editOrtuId) {
+                const idx = db.ortu.findIndex(x => x.id === editOrtuId);
+                if(idx !== -1) {
+                    db.ortu[idx] = { ...db.ortu[idx], tgl, siswaId: siswaVal, namaSiswa, nisn, namaWali, bentuk, topik, hasil };
+                }
+            } else {
+                db.ortu.push({ id: Date.now(), tgl, siswaId: siswaVal, namaSiswa, nisn, namaWali, bentuk, topik, hasil });
+            }
+
+            simpanDB();
+            batalEditOrtu();
+            renderOrtu();
+            await showAlert('Catatan Kerja Sama Orang Tua berhasil disimpan!');
+        }
+
+        function editOrtu(id) {
+            const item = db.ortu.find(x => x.id === id);
+            if(!item) return;
+            editOrtuId = id;
+            document.getElementById('ortu-tgl').value = item.tgl;
+            document.getElementById('ortu-siswa').value = item.siswaId;
+            document.getElementById('ortu-nama-wali').value = item.namaWali;
+            document.getElementById('ortu-bentuk').value = item.bentuk;
+            document.getElementById('ortu-topik').value = item.topik;
+            document.getElementById('ortu-hasil').value = item.hasil;
+
+            document.getElementById('ortu-form-title').innerText = '✏️ Edit Catatan Kerja Sama Orang Tua';
+            document.getElementById('btn-simpan-ortu').innerText = '💾 Simpan Perubahan';
+            document.getElementById('btn-batal-ortu').classList.remove('hidden');
+        }
+
+        function batalEditOrtu() {
+            editOrtuId = null;
+            document.getElementById('ortu-tgl').value = selectedDate;
+            document.getElementById('ortu-siswa').selectedIndex = 0;
+            document.getElementById('ortu-nama-wali').value = '';
+            document.getElementById('ortu-bentuk').selectedIndex = 0;
+            document.getElementById('ortu-topik').value = '';
+            document.getElementById('ortu-hasil').value = '';
+
+            document.getElementById('ortu-form-title').innerText = '📝 Input Catatan Kerja Sama Orang Tua';
+            document.getElementById('btn-simpan-ortu').innerText = '💾 Simpan Kerja Sama Ortu';
+            document.getElementById('btn-batal-ortu').classList.add('hidden');
+        }
+
+        async function hapusOrtu(id) {
+            const ok = await showConfirm('Hapus catatan kerja sama orang tua ini?');
+            if(ok) {
+                db.ortu = db.ortu.filter(x => x.id !== id);
+                if(editOrtuId === id) batalEditOrtu();
+                simpanDB();
+                renderOrtu();
+            }
+        }
+
+        async function cetakLaporanOrtu(mode = 'rekap', itemId = null) {
+            const cfg = db.config;
+            const pa = document.getElementById('print-area');
+            const kota = cfg.kota || 'Bandungsari';
+
+            if(mode === 'individu') {
+                const item = db.ortu.find(x => x.id === itemId);
+                if(!item) return;
+
+                setOrientasiCetak('portrait', '11px');
+                pa.innerHTML = `
+                    <div style="font-family: 'Times New Roman', Times, serif; color: black; max-width: 210mm; margin: 0 auto; line-height: 1.35;">
+                        <div style="text-align: center; margin-bottom: 14px;">
+                            <h3 style="margin: 0; font-size: 14px; font-weight: bold; text-decoration: underline; text-transform: uppercase;">BERITA ACARA KERJA SAMA ORANG TUA DAN SEKOLAH</h3>
+                            <h4 style="margin: 3px 0 0 0; font-size: 12px; font-weight: bold; text-transform: uppercase;">${esc(cfg.namaSekolah)}</h4>
+                            <p style="margin: 2px 0 0 0; font-size: 11px;">Kelas / Fase : ${esc(cfg.namaKelas)} (Fase C) &nbsp;&nbsp;|&nbsp;&nbsp; Tahun Pelajaran : 2026/2027</p>
+                        </div>
+
+                        <table style="width: 100%; font-size: 11.5px; margin-bottom: 12px; border-collapse: collapse;">
+                            <tr>
+                                <td style="width: 190px; padding: 2px 0;">Hari / Tanggal</td>
+                                <td style="width: 12px;">:</td>
+                                <td>${dateFromKey(item.tgl).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 2px 0;">Nama Peserta Didik</td>
+                                <td>:</td>
+                                <td style="font-weight: bold; text-transform: uppercase;">${esc(item.namaSiswa)}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 2px 0;">NIS / NISN</td>
+                                <td>:</td>
+                                <td>${esc(item.nisn || '-')}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 2px 0;">Nama Orang Tua / Wali</td>
+                                <td>:</td>
+                                <td style="font-weight: bold;">${esc(item.namaWali)}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 2px 0;">Bentuk Kerja Sama</td>
+                                <td>:</td>
+                                <td><b>${esc(item.bentuk)}</b></td>
+                            </tr>
+                        </table>
+
+                        <table class="print-table" style="font-size: 11.5px; text-align: left; margin-bottom: 12px;">
+                            <tr>
+                                <th style="text-align: left; padding: 6px 8px;">I. POKOK PERMASALAHAN / HAL YANG DIBAHAS BERSAMA</th>
+                            </tr>
+                            <tr>
+                                <td class="text-left-print" style="padding: 8px; height: 85px; vertical-align: top;">${esc(item.topik)}</td>
+                            </tr>
+                            <tr>
+                                <th style="text-align: left; padding: 6px 8px;">II. KESEPAKATAN BERSAMA & TINDAK LANJUT</th>
+                            </tr>
+                            <tr>
+                                <td class="text-left-print" style="padding: 8px; height: 95px; vertical-align: top;">${esc(item.hasil)}</td>
+                            </tr>
+                        </table>
+
+                        <div style="margin-top: 18px; width: 100%; display: flex; justify-content: space-between; font-size: 11px; page-break-inside: avoid;">
+                            <div style="text-align: center; width: 32%;">
+                                <p style="margin: 0;">Orang Tua / Wali Murid,</p>
+                                <br><br><br><br>
+                                <p style="text-decoration: underline; font-weight: bold; margin-bottom: 2px;">${esc(item.namaWali)}</p>
+                            </div>
+                            <div style="text-align: center; width: 32%;">
+                                <p style="margin: 0;">Mengetahui,<br>Kepala Sekolah</p>
+                                <br><br><br>
+                                <p style="text-decoration: underline; font-weight: bold; margin-bottom: 2px;">${esc(cfg.namaKs)}</p>
+                                <p style="margin: 0;">NIP. ${esc(cfg.nipKs)}</p>
+                            </div>
+                            <div style="text-align: center; width: 32%;">
+                                <p style="margin: 0;">${esc(kota)}, ${fmtTglPanjang(dateFromKey(item.tgl))}<br>Guru Kelas ${esc(cfg.namaKelas)}</p>
+                                <br><br><br>
+                                <p style="text-decoration: underline; font-weight: bold; margin-bottom: 2px;">${esc(cfg.namaGuru)}</p>
+                                <p style="margin: 0;">NIP. ${esc(cfg.nipGuru)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                pa.style.display = 'block';
+                window.print();
+                pa.style.display = 'none';
+                return;
+            }
+
+            // Rekap Kerja Sama Orang Tua
+            const sorted = [...db.ortu].sort((a, b) => a.tgl.localeCompare(b.tgl));
+            if(sorted.length === 0) {
+                await showAlert('Belum ada data kerja sama orang tua untuk dicetak.');
+                return;
+            }
+
+            setOrientasiCetak('landscape', '9.5px');
+            let rowsHTML = '';
+            sorted.forEach((item, idx) => {
+                rowsHTML += `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td style="white-space: nowrap;">${fmtTglPendek(item.tgl)}</td>
+                        <td class="text-left-print" style="font-weight: bold; text-transform: uppercase;">${esc(item.namaSiswa)}</td>
+                        <td class="text-left-print">${esc(item.namaWali)}</td>
+                        <td>${esc(item.bentuk)}</td>
+                        <td class="text-left-print valign-top-print">${esc(item.topik)}</td>
+                        <td class="text-left-print valign-top-print">${esc(item.hasil)}</td>
+                        <td style="width: 65px;">&nbsp;</td>
+                    </tr>
+                `;
+            });
+
+            pa.innerHTML = `
+                <div style="font-family: 'Times New Roman', Times, serif; color: black; width: 100%;">
+                    <div style="text-align: center; margin-bottom: 10px; line-height: 1.2;">
+                        <h2 style="margin: 0; font-size: 15px; font-weight: bold; text-decoration: underline; text-transform: uppercase;">BERITA ACARA / BUKU CATATAN KERJA SAMA DENGAN ORANG TUA</h2>
+                        <h3 style="margin: 2px 0; font-size: 13px; font-weight: bold; text-transform: uppercase;">${esc(cfg.namaSekolah)}</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 11px;">Kelas / Fase : ${esc(cfg.namaKelas)} (Fase C) &nbsp;&nbsp;|&nbsp;&nbsp; Tahun Pelajaran : 2026/2027</p>
+                    </div>
+
+                    <table class="print-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 24px;">No</th>
+                                <th style="width: 68px;">Tanggal</th>
+                                <th style="width: 130px;">Nama Siswa</th>
+                                <th style="width: 120px;">Nama Orang Tua / Wali</th>
+                                <th style="width: 110px;">Bentuk Kerja Sama</th>
+                                <th>Pokok Permasalahan / Hal yang Dibahas</th>
+                                <th>Kesepakatan & Tindak Lanjut</th>
+                                <th style="width: 65px;">Paraf Ortu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHTML}
+                        </tbody>
+                    </table>
+
+                    ${buatBlokTandaTangan()}
+                </div>
+            `;
+            pa.style.display = 'block';
+            window.print();
+            pa.style.display = 'none';
+        }
+
+        // ================= 9. KEUANGAN =================
+        function renderKeuangan() {
+            const tbody = document.getElementById('tabel-keuangan');
+            tbody.innerHTML = '';
+            db.siswa.forEach(s => {
+                let k = db.keuangan[s.id] || { mpp1:false, mpp2:false, j1:false, j2:false, tka:false, pisah:false };
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="border p-2 text-left uppercase">${esc(s.nama)}</td>
+                        <td class="border p-2"><input type="checkbox" id="mpp1-${s.id}" ${k.mpp1?'checked':''} class="w-4 h-4 cursor-pointer"></td>
+                        <td class="border p-2"><input type="checkbox" id="mpp2-${s.id}" ${k.mpp2?'checked':''} class="w-4 h-4 cursor-pointer"></td>
+                        <td class="border p-2"><input type="checkbox" id="j1-${s.id}" ${k.j1?'checked':''} class="w-4 h-4 cursor-pointer"></td>
+                        <td class="border p-2"><input type="checkbox" id="j2-${s.id}" ${k.j2?'checked':''} class="w-4 h-4 cursor-pointer"></td>
+                        <td class="border p-2"><input type="checkbox" id="tka-${s.id}" ${k.tka?'checked':''} class="w-4 h-4 cursor-pointer"></td>
+                        <td class="border p-2"><input type="checkbox" id="pisah-${s.id}" ${k.pisah?'checked':''} class="w-4 h-4 cursor-pointer"></td>
+                    </tr>`;
+            });
+        }
+        async function simpanKeuangan() {
+            db.siswa.forEach(s => {
+                db.keuangan[s.id] = {
+                    mpp1: document.getElementById(`mpp1-${s.id}`).checked,
+                    mpp2: document.getElementById(`mpp2-${s.id}`).checked,
+                    j1: document.getElementById(`j1-${s.id}`).checked,
+                    j2: document.getElementById(`j2-${s.id}`).checked,
+                    tka: document.getElementById(`tka-${s.id}`).checked,
+                    pisah: document.getElementById(`pisah-${s.id}`).checked,
+                };
+            });
+            simpanDB();
+            await showAlert('Catatan Keuangan berhasil disimpan!');
+        }
+
+        // ================= 10. PENGATURAN =================
+        let editLiburId = null;
+
+        function renderPengaturan() {
+            terapkanIdentitas();
+            renderListLibur();
+            renderDaftarAbsen();
+        }
+
+        function renderListLibur() {
+            const tbody = document.getElementById('tabel-libur');
+            if(db.libur.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-500">Belum ada hari libur yang diinput.</td></tr>`;
+                return;
+            }
+            const sorted = [...db.libur].sort((a, b) => a.mulai.localeCompare(b.mulai));
+            tbody.innerHTML = sorted.map(l => {
+                const hari = Math.round((dateFromKey(l.selesai) - dateFromKey(l.mulai)) / 86400000) + 1;
+                const tgl = l.mulai === l.selesai
+                    ? fmtTglPendek(l.mulai)
+                    : `${fmtTglPendek(l.mulai)} – ${fmtTglPendek(l.selesai)} <span class="text-xs text-gray-500">(${hari} hari)</span>`;
+                return `<tr class="hover:bg-gray-50">
+                    <td class="border p-2">${tgl}</td>
+                    <td class="border p-2 font-medium">${esc(l.ket)}</td>
+                    <td class="border p-2 text-center text-xs"><span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">${esc(l.jenis)}</span></td>
+                    <td class="border p-2 text-center whitespace-nowrap">
+                        <button onclick="editLibur(${l.id})" class="text-blue-600 hover:underline mr-2">Edit</button>
+                        <button onclick="hapusLibur(${l.id})" class="text-red-500 hover:underline">Hapus</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function resetFormLibur() {
+            editLiburId = null;
+            document.getElementById('lib-mulai').value = '';
+            document.getElementById('lib-selesai').value = '';
+            document.getElementById('lib-ket').value = '';
+            document.getElementById('lib-jenis').selectedIndex = 0;
+            document.getElementById('judul-form-libur').innerText = 'Tambah Hari Libur';
+            document.getElementById('btn-simpan-libur').innerText = 'Tambah Libur';
+            document.getElementById('btn-batal-libur').classList.add('hidden');
+        }
+
+        async function simpanLibur() {
+            const mulai = document.getElementById('lib-mulai').value;
+            const selesai = document.getElementById('lib-selesai').value || mulai;
+            const ket = document.getElementById('lib-ket').value.trim();
+            const jenis = document.getElementById('lib-jenis').value;
+
+            if(!mulai) { await showAlert('Tanggal mulai wajib diisi.'); return; }
+            if(!ket) { await showAlert('Keterangan libur wajib diisi.'); return; }
+            if(selesai < mulai) { await showAlert('Tanggal selesai tidak boleh sebelum tanggal mulai.'); return; }
+
+            const terisi = Object.keys(db.absen).filter(k => k >= mulai && k <= selesai);
+            if(terisi.length > 0) {
+                const ok = await showConfirm(`Ada ${terisi.length} tanggal pada rentang ini yang sudah terlanjur diabsen.\n\nOK = hapus data absensi tanggal tersebut\nBatal = biarkan data tetap tersimpan`);
+                if(ok) terisi.forEach(k => delete db.absen[k]);
+            }
+
+            if(editLiburId) {
+                const item = db.libur.find(l => l.id === editLiburId);
+                if(item) { item.mulai = mulai; item.selesai = selesai; item.ket = ket; item.jenis = jenis; }
+            } else {
+                db.libur.push({ id: Date.now(), mulai, selesai, ket, jenis });
+            }
+            db.libur.sort((a, b) => a.mulai.localeCompare(b.mulai));
+            simpanDB();
+            resetFormLibur();
+            renderPengaturan();
+        }
+
+        function editLibur(id) {
+            const l = db.libur.find(x => x.id === id);
+            if(!l) return;
+            editLiburId = id;
+            document.getElementById('lib-mulai').value = l.mulai;
+            document.getElementById('lib-selesai').value = l.selesai === l.mulai ? '' : l.selesai;
+            document.getElementById('lib-ket').value = l.ket;
+            document.getElementById('lib-jenis').value = l.jenis;
+            document.getElementById('judul-form-libur').innerText = 'Edit Hari Libur';
+            document.getElementById('btn-simpan-libur').innerText = 'Simpan Perubahan';
+            document.getElementById('btn-batal-libur').classList.remove('hidden');
+            document.getElementById('lib-ket').focus();
+        }
+
+        function batalEditLibur() { resetFormLibur(); }
+
+        async function hapusLibur(id) {
+            const l = db.libur.find(x => x.id === id);
+            if(!l) return;
+            const ok = await showConfirm(`Hapus hari libur "${l.ket}"?\nTanggal tersebut akan bisa diabsen kembali.`);
+            if(!ok) return;
+            db.libur = db.libur.filter(x => x.id !== id);
+            if(editLiburId === id) resetFormLibur();
+            simpanDB();
+            renderPengaturan();
+        }
+
+        async function tambahLiburTetap() {
+            const preset = [
+                ['2026-08-17', 'HUT Kemerdekaan RI'],
+                ['2026-12-25', 'Hari Raya Natal'],
+                ['2027-01-01', 'Tahun Baru Masehi 2027'],
+                ['2027-05-01', 'Hari Buruh Internasional'],
+                ['2027-06-01', 'Hari Lahir Pancasila']
+            ];
+            let tambah = 0;
+            preset.forEach(([tgl, ket], i) => {
+                if(db.libur.some(l => l.mulai <= tgl && tgl <= l.selesai)) return;
+                db.libur.push({ id: Date.now() + i, mulai: tgl, selesai: tgl, ket, jenis: 'Libur Nasional' });
+                delete db.absen[tgl];
+                tambah++;
+            });
+            db.libur.sort((a, b) => a.mulai.localeCompare(b.mulai));
+            simpanDB();
+            renderPengaturan();
+            await showAlert(tambah > 0 ? `${tambah} hari libur ditambahkan.` : 'Semua tanggal tersebut sudah ada di daftar libur.');
+        }
+
+        function renderDaftarAbsen() {
+            const tbody = document.getElementById('tabel-absen-tersimpan');
+            const keys = Object.keys(db.absen).sort().reverse();
+            if(keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">Belum ada absensi yang tersimpan.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = keys.map(k => {
+                const c = { H:0, S:0, I:0, A:0 };
+                Object.values(db.absen[k]).forEach(v => { if(c[v] !== undefined) c[v]++; });
+                const d = dateFromKey(k);
+                const lib = getLibur(k);
+                const flag = lib ? `<div class="text-xs text-amber-700">⚠ Libur: ${esc(lib.ket)}</div>`
+                           : (d.getDay() === 0 ? `<div class="text-xs text-red-600">⚠ Hari Minggu</div>` : '');
+                const label = d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+                return `<tr class="hover:bg-gray-50">
+                    <td class="border p-2">${label}${flag}</td>
+                    <td class="border p-2 text-center">${c.H}</td>
+                    <td class="border p-2 text-center">${c.S}</td>
+                    <td class="border p-2 text-center">${c.I}</td>
+                    <td class="border p-2 text-center">${c.A}</td>
+                    <td class="border p-2 text-center whitespace-nowrap">
+                        <button onclick="bukaAbsen('${k}')" class="text-blue-600 hover:underline mr-2">Buka</button>
+                        <button onclick="hapusAbsenTanggal('${k}')" class="text-red-500 hover:underline">Hapus</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function bukaAbsen(key) {
+            selectedDate = key;
+            openTab('absensi');
+        }
+
+
+        // ================= SINKRON GOOGLE SHEETS =================
+        const GS = {
+            get url() { return localStorage.getItem('sdn4_gs_url') || ''; },
+            get token() { return localStorage.getItem('sdn4_gs_token') || ''; },
+            get auto() { return localStorage.getItem('sdn4_gs_auto') === '1'; }
+        };
+        const _simpanLokal = simpanDB;
+        let _timerSync = null;
+
+        simpanDB = function () {
+            _simpanLokal();
+            if (GS.url && GS.token && GS.auto) {
+                clearTimeout(_timerSync);
+                _timerSync = setTimeout(() => syncKeSheet(false, false), 1500);
+            }
+        };
+
+        function setStatusGS(teks, warna) {
+            const el = document.getElementById('gs-status');
+            if (!el) return;
+            el.textContent = teks;
+            el.style.color = warna || '#4b5563';
+        }
+
+        function isiFormGS() {
+            const u = document.getElementById('gs-url');
+            if (!u) return;
+            u.value = GS.url;
+            document.getElementById('gs-token').value = GS.token;
+            document.getElementById('gs-auto').checked = GS.auto;
+        }
+
+        async function simpanPengaturanGS() {
+            localStorage.setItem('sdn4_gs_url', document.getElementById('gs-url').value.trim());
+            localStorage.setItem('sdn4_gs_token', document.getElementById('gs-token').value.trim());
+            localStorage.setItem('sdn4_gs_auto', document.getElementById('gs-auto').checked ? '1' : '0');
+            await showAlert('Pengaturan Google Sheets tersimpan di browser ini.');
+        }
+
+        async function syncKeSheet(force = false, tampilkanPesan = false) {
+            if (!GS.url || !GS.token) {
+                if (tampilkanPesan) await showAlert('Isi URL Web App dan Kode Rahasia dulu, lalu klik Simpan Pengaturan.');
+                return;
+            }
+            setStatusGS('⏳ Mengirim ke Sheet...');
+            try {
+                const r = await fetch(GS.url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ token: GS.token, action: 'save', db, force })
+                });
+                const j = await r.json();
+                if (j.ok) {
+                    setStatusGS('✔ Terkirim ' + new Date().toLocaleTimeString('id-ID'), '#15803d');
+                    if (tampilkanPesan) await showAlert('Data berhasil dikirim ke Google Sheet.');
+                } else {
+                    setStatusGS('✖ ' + j.error, '#b91c1c');
+                    if (tampilkanPesan) await showAlert('Gagal mengirim: ' + j.error);
+                }
+            } catch (e) {
+                setStatusGS('✖ Gagal terhubung', '#b91c1c');
+                if (tampilkanPesan) await showAlert('Gagal terhubung ke Web App: ' + e);
+            }
+        }
+
+        async function muatDariSheet() {
+            if (!GS.url || !GS.token) { await showAlert('Isi URL Web App dan Kode Rahasia dulu, lalu klik Simpan Pengaturan.'); return; }
+            const ok = await showConfirm('Data di browser ini akan diganti dengan data dari Google Sheet. Lanjutkan?');
+            if (!ok) return;
+            setStatusGS('⏳ Memuat dari Sheet...');
+            try {
+                const r = await fetch(GS.url + '?action=load&token=' + encodeURIComponent(GS.token));
+                const j = await r.json();
+                if (!j.ok) { setStatusGS('✖ ' + j.error, '#b91c1c'); await showAlert('Gagal memuat: ' + j.error); return; }
+                if (!j.db.siswa.length) { setStatusGS(''); await showAlert('Sheet masih kosong, data di browser tidak diubah.'); return; }
+                Object.keys(j.db).forEach(k => {
+                    if (k === 'config' && !Object.keys(j.db.config).length) return;
+                    db[k] = j.db[k];
+                });
+                _simpanLokal(); // simpan ke browser saja, tanpa dikirim balik
+                terapkanIdentitas();
+                renderPengaturan();
+                setStatusGS('✔ Dimuat ' + new Date().toLocaleTimeString('id-ID'), '#15803d');
+                await showAlert('Data berhasil dimuat dari Google Sheet.');
+            } catch (e) {
+                setStatusGS('✖ Gagal terhubung', '#b91c1c');
+                await showAlert('Gagal terhubung ke Web App: ' + e);
+            }
+        }
+
+        // isi form pengaturan GS saat tab Pengaturan dibuka
+        const _renderPengaturanAsli = renderPengaturan;
+        renderPengaturan = function () { _renderPengaturanAsli(); isiFormGS(); };
+        isiFormGS();
+
+        // Inisialisasi Tampilan Awal
+        openTab('data-siswa');
+    </script>
+</body>
+</html>
